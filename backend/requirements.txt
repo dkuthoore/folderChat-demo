@@ -9,4 +9,5 @@ pydantic-settings==2.13.1
 openai==2.26.0
 llama-index==0.14.16
 pypdf==6.8.0
+aiofiles==25.1.0
 pytest==9.0.2

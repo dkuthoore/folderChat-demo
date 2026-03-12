@@ -1,6 +1,11 @@
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import FileResponse
 
 from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
@@ -34,3 +39,13 @@ app.include_router(user_data_router)
 @app.get("/health")
 async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
+
+
+FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str) -> FileResponse:
+        index = FRONTEND_DIST / "index.html"
+        return FileResponse(str(index))

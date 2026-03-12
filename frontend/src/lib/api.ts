@@ -8,7 +8,8 @@ import type {
   SessionResponse,
 } from '../types/api'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const _rawApiBase = import.meta.env.VITE_API_BASE_URL ?? ''
+const apiBaseUrl = _rawApiBase && !_rawApiBase.includes('localhost') ? _rawApiBase : ''
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
