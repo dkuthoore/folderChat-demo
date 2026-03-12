@@ -1,0 +1,34 @@
+# Submission and local data (per request)
+submission.md
+data/
+.env
+
+# Environment
+.env.local
+.env.*.local
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Node / frontend
+node_modules/
+
+# IDE and OS
+.idea/
+.vscode/
+.cursor/
+.DS_Store
+*.swp
+*.swo
+
+# Test and cache
+.pytest_cache/
+.coverage
+htmlcov/
