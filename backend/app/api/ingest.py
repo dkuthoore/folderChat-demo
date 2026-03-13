@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import cast
 
 from app.core.config import Settings, get_settings
@@ -23,9 +24,22 @@ from app.services.job_store import LocalJobStore
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from google.oauth2.credentials import Credentials
+from googleapiclient.errors import HttpError
 from pydantic import HttpUrl
 
 router = APIRouter(prefix="/api", tags=["ingest"])
+logger = logging.getLogger(__name__)
+
+FOLDER_NOT_FOUND_OR_ACCESS_DENIED = (
+    "The Google Drive folder could not be found or you do not have access to it. "
+    "Make sure the URL is correct and that you're signed in with the right Google account."
+)
+DRIVE_UNAVAILABLE = (
+    "Google Drive returned an error while accessing this folder. Try again later."
+)
+INGESTION_UNEXPECTED_ERROR = (
+    "An unexpected error occurred during folder ingestion. Try again later."
+)
 
 
 def _build_credentials(credentials_payload: dict) -> Credentials:
@@ -41,6 +55,16 @@ def _build_credentials(credentials_payload: dict) -> Credentials:
 
 def _job_store(settings: Settings) -> LocalJobStore:
     return LocalJobStore(settings.storage_dir_path)
+
+
+def _drive_error_message(exc: HttpError) -> str:
+    """Map Google Drive API HttpError to a user-friendly message."""
+    status_code = getattr(exc, "status_code", None) or (
+        getattr(exc.resp, "status", None) if hasattr(exc, "resp") else None
+    )
+    if status_code in (403, 404):
+        return FOLDER_NOT_FOUND_OR_ACCESS_DENIED
+    return DRIVE_UNAVAILABLE
 
 
 def _serialize_job_event(job: IngestionJobRecord) -> str:
@@ -127,14 +151,29 @@ def _process_drive_folder_job(
             current_step_message=f"Ingestion complete. Indexed {len(result.files)} file(s) from {folder_name}.",
             sync_summary=result.sync_summary,
         )
-    except Exception as exc:
+    except HttpError as exc:
         job_store.update_job(
             owner_google_id,
             job_id,
             status="failed",
             progress_percentage=100,
             current_step_message="Folder ingestion failed.",
-            error_message=str(exc),
+            error_message=_drive_error_message(exc),
+        )
+    except Exception as exc:
+        logger.exception(
+            "ingest.failed owner=%s job_id=%s folder_id=%s",
+            owner_google_id,
+            job_id,
+            folder_id,
+        )
+        job_store.update_job(
+            owner_google_id,
+            job_id,
+            status="failed",
+            progress_percentage=100,
+            current_step_message="Folder ingestion failed.",
+            error_message=INGESTION_UNEXPECTED_ERROR,
         )
 
 
@@ -162,6 +201,11 @@ async def ingest_folder(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
+    except HttpError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=_drive_error_message(exc),
+        ) from exc
 
     storage_backend = get_storage_backend(settings)
     storage_backend.set_active_folder(
@@ -174,7 +218,13 @@ async def ingest_folder(
     )
 
     if payload.check_first:
-        files = drive_service.list_supported_files(folder_id)
+        try:
+            files = drive_service.list_supported_files(folder_id)
+        except HttpError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=_drive_error_message(exc),
+            ) from exc
         if files:
             ingestion_service = IngestionService(settings, storage_backend)
             new_count, skipped_count, updated_count = ingestion_service.sync_check(
