@@ -77,6 +77,11 @@ Backend:
 - `./.venv/bin/pip install -r backend/requirements.txt`
 - `cd backend && ../.venv/bin/pytest`
 
+Backend lint, format, and type checks (from `backend/`):
+- Lint: `ruff check .`
+- Format: `black --check .`
+- Types: `mypy app`
+
 ## Database
 
 Replit Postgres with pgvector is fully implemented and the schema is applied (`backend/migrations/001_init_schema.sql`).
