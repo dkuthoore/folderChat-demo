@@ -1,9 +1,19 @@
 from __future__ import annotations
 
+from typing import TypedDict, cast
+
 from app.models.session import ServerSessionRecord
 from app.services.session_store import get_session_store
 from fastapi import HTTPException, Request, status
 from google.oauth2.credentials import Credentials
+
+
+class SessionUserPayload(TypedDict):
+    google_id: str
+    email: str
+    name: str
+    picture: str | None
+
 
 SESSION_COOKIE_KEY = "server_session_id"
 
@@ -27,8 +37,11 @@ def get_server_session(request: Request) -> ServerSessionRecord:
     return record
 
 
-def get_session_user(request: Request) -> dict:
-    return get_server_session(request).user.model_dump(mode="json")
+def get_session_user(request: Request) -> SessionUserPayload:
+    return cast(
+        SessionUserPayload,
+        get_server_session(request).user.model_dump(mode="json"),
+    )
 
 
 def get_google_credentials(request: Request) -> Credentials:

@@ -19,9 +19,9 @@ from app.schemas.chat import (
     ToolCallCompletedEvent,
     ToolCallStartedEvent,
 )
-from app.services.conversation_store import ConversationStore
+from app.services.conversation_store import ConversationStoreProtocol
 from app.services.retrieval_service import RetrievalService
-from openai import OpenAI
+from openai import OpenAI  # type: ignore[attr-defined]
 
 DRIVE_URL_PATTERN = re.compile(r"https?://[^\s)\]]+")
 SOURCE_ID_PATTERN = re.compile(r"\[\s*(source_\d+)\s*\]|\b(source_\d+)\b")
@@ -35,7 +35,7 @@ class ChatAgentService:
         *,
         settings: Settings,
         retrieval_service: RetrievalService,
-        conversation_store: ConversationStore,
+        conversation_store: ConversationStoreProtocol,
     ) -> None:
         self.settings = settings
         self.retrieval_service = retrieval_service
@@ -440,7 +440,7 @@ class ChatAgentService:
         source_offset: int,
     ) -> tuple[dict[str, Any], list[Citation]]:
         if tool_name == "search_folder":
-            result = self.retrieval_service.search_folder(
+            search_result = self.retrieval_service.search_folder(
                 owner_google_id=owner_google_id,
                 folder_id=folder_id,
                 query=str(arguments.get("query", "")).strip(),
@@ -452,21 +452,21 @@ class ChatAgentService:
                 ),
                 source_offset=source_offset,
             )
-            return result.as_tool_payload(), result.citations
+            return search_result.as_tool_payload(), search_result.citations
 
         if tool_name == "list_files":
-            result = self.retrieval_service.list_files(
+            list_result = self.retrieval_service.list_files(
                 owner_google_id=owner_google_id,
                 folder_id=folder_id,
                 source_offset=source_offset,
             )
-            return result.as_tool_payload(), result.citations
+            return list_result.as_tool_payload(), list_result.citations
 
         if tool_name == "read_file":
             file_id = str(arguments.get("file_id", "")).strip()
             if not file_id:
                 raise ValueError("read_file requires a non-empty file_id.")
-            result = self.retrieval_service.read_file(
+            read_result = self.retrieval_service.read_file(
                 owner_google_id=owner_google_id,
                 folder_id=folder_id,
                 file_name=(
@@ -477,7 +477,7 @@ class ChatAgentService:
                 file_id=file_id,
                 source_offset=source_offset,
             )
-            return result.as_tool_payload(), [result.citation]
+            return read_result.as_tool_payload(), [read_result.citation]
 
         raise ValueError(f"Unsupported tool call: {tool_name}")
 
@@ -524,12 +524,12 @@ class ChatAgentService:
             source_id = bracketed_source_id or bare_source_id
             if source_id in seen_source_ids:
                 continue
-            citation = source_registry.get(source_id)
-            if citation is None:
+            maybe_citation = source_registry.get(source_id)
+            if maybe_citation is None:
                 continue
-            citations.append(citation)
+            citations.append(maybe_citation)
             seen_source_ids.add(source_id)
-            seen_urls.add(citation.drive_url)
+            seen_urls.add(maybe_citation.drive_url)
 
         for indexed_file in self.retrieval_service.storage_backend.get_folder_files(
             owner_google_id, folder_id
@@ -550,10 +550,10 @@ class ChatAgentService:
         for drive_url in DRIVE_URL_PATTERN.findall(answer):
             if drive_url in seen_urls:
                 continue
-            citation = by_url.get(drive_url)
-            if citation is None:
+            maybe_citation = by_url.get(drive_url)
+            if maybe_citation is None:
                 continue
-            citations.append(citation)
+            citations.append(maybe_citation)
             seen_urls.add(drive_url)
         return citations
 

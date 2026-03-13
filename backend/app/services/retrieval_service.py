@@ -8,7 +8,7 @@ from app.core.config import Settings
 from app.models.documents import ChunkRecord, DriveFileMetadata
 from app.schemas.chat import Citation
 from app.services.storage.base import StorageBackend
-from openai import OpenAI
+from openai import OpenAI  # type: ignore[attr-defined]
 
 WHITESPACE_PATTERN = re.compile(r"\s+")
 
@@ -44,7 +44,7 @@ class SearchFolderResult:
 class ListFilesResult:
     citations: list[Citation]
 
-    def as_tool_payload(self) -> dict[str, list[dict]]:
+    def as_tool_payload(self) -> dict[str, object]:
         return {
             "files": [
                 {

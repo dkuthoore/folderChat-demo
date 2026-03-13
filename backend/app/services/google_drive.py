@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import re
 from pathlib import Path
+from typing import cast
 
 from app.models.documents import DriveFileMetadata, ParsedDocument, SupportedDriveType
 from google.oauth2.credentials import Credentials
@@ -115,7 +116,7 @@ class GoogleDriveService:
             )
             .execute()
         )
-        return response.get("name", folder_id)
+        return cast(str, response.get("name", folder_id))
 
     def download_and_parse(
         self, folder_id: str, file: DriveFileMetadata
@@ -193,10 +194,10 @@ class GoogleDriveService:
         return "\n\n".join(pages).strip()
 
     def _map_source_type(self, mime_type: str) -> SupportedDriveType | None:
-        mapping = {
+        mapping: dict[str, SupportedDriveType] = {
             GOOGLE_DOC_MIME: "document",
             GOOGLE_SHEET_MIME: "spreadsheet",
             GOOGLE_SLIDE_MIME: "presentation",
             PDF_MIME: "pdf",
         }
-        return mapping.get(mime_type)
+        return cast(SupportedDriveType | None, mapping.get(mime_type))

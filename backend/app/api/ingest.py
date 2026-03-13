@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import cast
 
 from app.core.config import Settings, get_settings
 from app.core.session import (
@@ -9,6 +10,7 @@ from app.core.session import (
     get_session_user,
 )
 from app.models.documents import ActiveFolderRecord, SyncSummary
+from app.models.jobs import IngestionJobRecord
 from app.schemas.ingest import (
     IngestAcceptedResponse,
     IngestAlreadySyncedResponse,
@@ -40,18 +42,21 @@ def _job_store(settings: Settings) -> LocalJobStore:
     return LocalJobStore(settings.storage_dir_path)
 
 
-def _serialize_job_event(job) -> str:
-    return IngestionJobEvent(
-        job_id=job.id,
-        status=job.status,
-        progress_percentage=job.progress_percentage,
-        current_step_message=job.current_step_message,
-        folder_id=job.folder_id,
-        folder_name=job.folder_name,
-        folder_url=job.folder_url,
-        sync_summary=job.sync_summary,
-        error_message=job.error_message,
-    ).model_dump_json()
+def _serialize_job_event(job: IngestionJobRecord) -> str:
+    return cast(
+        str,
+        IngestionJobEvent(
+            job_id=job.id,
+            status=job.status,
+            progress_percentage=job.progress_percentage,
+            current_step_message=job.current_step_message,
+            folder_id=job.folder_id,
+            folder_name=job.folder_name,
+            folder_url=job.folder_url,
+            sync_summary=job.sync_summary,
+            error_message=job.error_message,
+        ).model_dump_json(),
+    )
 
 
 def _process_drive_folder_job(
@@ -94,6 +99,15 @@ def _process_drive_folder_job(
             )
             return
 
+        def _progress_cb(progress: int, message: str) -> None:
+            job_store.update_job(
+                owner_google_id,
+                job_id,
+                status="in_progress",
+                progress_percentage=progress,
+                current_step_message=message,
+            )
+
         ingestion_service = IngestionService(settings, get_storage_backend(settings))
         result = ingestion_service.ingest_folder(
             owner_google_id=owner_google_id,
@@ -102,13 +116,7 @@ def _process_drive_folder_job(
             download_document=lambda file: drive_service.download_and_parse(
                 folder_id, file
             ),
-            progress_callback=lambda progress, message: job_store.update_job(
-                owner_google_id,
-                job_id,
-                status="in_progress",
-                progress_percentage=progress,
-                current_step_message=message,
-            ),
+            progress_callback=_progress_cb,
         )
         job_store.update_job(
             owner_google_id,

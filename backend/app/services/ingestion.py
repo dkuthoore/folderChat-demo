@@ -20,7 +20,7 @@ from app.services.storage.local_store import LocalStorageBackend
 from app.services.storage.pgvector_store import PgVectorStorageBackend
 from llama_index.core import Document
 from llama_index.core.node_parser import SentenceSplitter
-from openai import OpenAI
+from openai import OpenAI  # type: ignore[attr-defined]
 
 
 @dataclass
@@ -201,12 +201,10 @@ class IngestionService:
                     owner_google_id, document.file_id
                 )
                 folder_ids = sorted(
-                    set(
-                        [
-                            folder_id,
-                            *(existing_file.folder_ids if existing_file else []),
-                        ]
-                    )
+                    {
+                        folder_id,
+                        *(existing_file.folder_ids if existing_file else []),
+                    }
                 )
                 indexed_file = IndexedFileRecord.from_drive_file(
                     owner_google_id=owner_google_id,

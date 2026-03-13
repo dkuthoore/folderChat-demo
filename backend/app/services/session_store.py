@@ -5,6 +5,7 @@ import uuid
 from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 from app.core.config import Settings, get_settings
 from app.models.session import (
@@ -39,8 +40,9 @@ class ServerSessionStore:
         path = self._session_path(session_id)
         if not path.exists():
             return None
-        record = ServerSessionRecord.model_validate_json(
-            path.read_text(encoding="utf-8")
+        record = cast(
+            ServerSessionRecord,
+            ServerSessionRecord.model_validate_json(path.read_text(encoding="utf-8")),
         )
         if self._is_expired(record):
             self.delete_session(session_id)

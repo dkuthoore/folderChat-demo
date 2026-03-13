@@ -2,10 +2,27 @@ from __future__ import annotations
 
 from contextlib import closing
 from pathlib import Path
+from typing import Protocol, cast
 
 from app.core.config import Settings, get_settings
 from app.models.conversation import FolderConversationRecord
 from app.models.session import utc_now_iso
+
+
+class ConversationStoreProtocol(Protocol):
+    def get_folder_conversation(
+        self, owner_google_id: str, folder_id: str
+    ) -> FolderConversationRecord | None: ...
+
+    def upsert_folder_conversation(
+        self, record: FolderConversationRecord
+    ) -> FolderConversationRecord: ...
+
+    def delete_folder_conversation(
+        self, owner_google_id: str, folder_id: str
+    ) -> None: ...
+
+    def delete_user_conversations(self, owner_google_id: str) -> None: ...
 
 
 class ConversationStore:
@@ -21,8 +38,11 @@ class ConversationStore:
         path = self._conversation_path(owner_google_id, folder_id)
         if not path.exists():
             return None
-        return FolderConversationRecord.model_validate_json(
-            path.read_text(encoding="utf-8")
+        return cast(
+            FolderConversationRecord,
+            FolderConversationRecord.model_validate_json(
+                path.read_text(encoding="utf-8")
+            ),
         )
 
     def upsert_folder_conversation(

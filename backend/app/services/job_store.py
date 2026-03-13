@@ -4,6 +4,7 @@ import json
 import threading
 import uuid
 from pathlib import Path
+from typing import cast
 
 from app.models.documents import SyncSummary
 from app.models.jobs import IngestionJobRecord, utc_now_iso
@@ -36,7 +37,10 @@ class LocalJobStore:
         path = self._job_path(owner_google_id, job_id)
         if not path.exists():
             return None
-        return IngestionJobRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        return cast(
+            IngestionJobRecord,
+            IngestionJobRecord.model_validate_json(path.read_text(encoding="utf-8")),
+        )
 
     def update_job(
         self,

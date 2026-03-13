@@ -4,6 +4,7 @@ import json
 import math
 import shutil
 from pathlib import Path
+from typing import cast
 
 from app.models.documents import (
     ActiveFolderRecord,
@@ -37,7 +38,7 @@ class LocalStorageBackend(StorageBackend):
         payload = files.get(file_id)
         if not payload:
             return None
-        return IndexedFileRecord.model_validate(payload)
+        return cast(IndexedFileRecord, IndexedFileRecord.model_validate(payload))
 
     def upsert_file(self, file_record: IndexedFileRecord) -> IndexedFileRecord:
         files = self._read_files(file_record.owner_google_id)
@@ -77,7 +78,7 @@ class LocalStorageBackend(StorageBackend):
         if folder_id in file_record.folder_ids:
             return
 
-        file_record.folder_ids = sorted(set([*file_record.folder_ids, folder_id]))
+        file_record.folder_ids = sorted({*file_record.folder_ids, folder_id})
         files[file_id] = file_record.model_dump(mode="json")
         self._write_files(owner_google_id, files)
         self._write_folder_indexes(owner_google_id, files)
@@ -86,7 +87,7 @@ class LocalStorageBackend(StorageBackend):
         for chunk in chunks:
             if chunk.metadata.file_id == file_id:
                 chunk.metadata.folder_ids = sorted(
-                    set([*chunk.metadata.folder_ids, folder_id])
+                    {*chunk.metadata.folder_ids, folder_id}
                 )
         self._write_chunks(owner_google_id, chunks)
 
@@ -155,8 +156,11 @@ class LocalStorageBackend(StorageBackend):
         active_folder_path = self._user_dir(owner_google_id) / "active_folder.json"
         if not active_folder_path.exists():
             return None
-        return ActiveFolderRecord.model_validate_json(
-            active_folder_path.read_text(encoding="utf-8")
+        return cast(
+            ActiveFolderRecord,
+            ActiveFolderRecord.model_validate_json(
+                active_folder_path.read_text(encoding="utf-8")
+            ),
         )
 
     def set_active_folder(self, active_folder: ActiveFolderRecord) -> None:
@@ -184,7 +188,7 @@ class LocalStorageBackend(StorageBackend):
         files_path = self._user_dir(owner_google_id) / "files.json"
         if not files_path.exists():
             return {}
-        return json.loads(files_path.read_text(encoding="utf-8"))
+        return cast(dict[str, dict], json.loads(files_path.read_text(encoding="utf-8")))
 
     def _write_files(self, owner_google_id: str, payload: dict[str, dict]) -> None:
         user_dir = self._user_dir(owner_google_id)
