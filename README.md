@@ -1,104 +1,69 @@
-# Google Drive AI Agent Prototype
+# FolderChat Agent
 
-This repo contains a webapp enabling users to explore a Google Drive folder via a familiar AI chat experience.
+FolderChat is a web app that lets you explore your Google Drive folder through an AI chat interface. Sign in with Google, point it at a Drive folder URL, and ask questions about your documents. Answers are grounded in your files with citations.
+
 
 ## Stack
-- Frontend: React + Vite + TypeScript
-- Backend: FastAPI + Python
-- Auth: Google OAuth with `drive.readonly`
-- RAG: LlamaIndex for chunking, OpenAI for embeddings and chat
-- Storage: Replit Postgres + `pgvector` (production); file-backed local store available for dev via `VECTOR_STORE_BACKEND=local`
 
-## Repo Layout
-- `frontend/`: React app
-- `backend/`: FastAPI API
-- `.env.example`: environment variable template
-
-## Environment
-Create a root `.env` file using `.env.example`.
-
-Important variables:
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REDIRECT_URI`
-- `OPENAI_API_KEY`
-- `SESSION_SECRET`
-- `SESSION_TTL_SECONDS`
-- `VITE_API_BASE_URL`
-- `VECTOR_STORE_BACKEND`
-- `DATABASE_URL`
+- **Frontend:** React + Vite + TypeScript
+- **Backend:** FastAPI + Python
+- **Auth:** Google OAuth with `drive.readonly`
+- **RAG:** LlamaIndex for chunking, OpenAI for embeddings and chat
+- **Storage:** Postgres + pgvector (production); file-backed local store for local development
 
 ## Local Development
-1. Install frontend dependencies:
-   `cd frontend && npm install`
-2. Install backend dependencies:
-   `cd backend && pip install -r requirements.txt`
-   (Dependencies are pinned for reproducible installs.)
-3. Start the backend:
-   `cd backend && uvicorn app.main:app --reload`
-4. Start the frontend:
-   `cd frontend && npm run dev`
 
-## Supported File Types
-- Google Docs
-- Google Sheets
-- Google Slides
-- PDFs
+1. **Install dependencies**
+   - Frontend: `cd frontend && npm install`
+   - Backend:
+     - (Optional) Create and activate a venv: `python3 -m venv .venv`, then `source .venv/bin/activate` (Windows: `.venv\Scripts\activate`).
+     - `cd backend && pip install -r requirements.txt`
 
-## Demo Flow
-1. Sign in with Google.
-2. Paste a Google Drive folder URL.
-3. Wait for ingestion to finish.
-4. Ask questions in chat and inspect the citation chips.
+2. **Environment**  
+   Create a root `.env` from `.env.example`. For local development use:
 
-## Retrieval Notes
-- `search_folder` is used for semantic and keyword-style retrieval across the active folder.
-- `read_file` lets the model inspect a single indexed file more deeply when a question is about one file or search results need follow-up.
-- Google Sheets are chunked in a row-aware way during ingestion so row-level values survive retrieval better than generic sentence chunking.
+```env
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
 
-## Smart Sync
-- Files are cached by Google Drive `file_id`, not just by folder.
-- If a file is new, it is exported, chunked, embedded, and stored.
-- If a file is unchanged, the existing cached embeddings are reused.
-- If a file has a newer `modifiedTime`, its old chunks are invalidated and re-ingested.
-- Folder context is still preserved so chat remains scoped to the currently active folder.
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_CHAT_MODEL=gpt-5-nano-2025-08-07
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 
-## Data Lifecycle
-- Indexed data is retained until the user deletes it.
-- The dashboard includes a `Clear My Data` action that removes user-scoped indexed files, chunks, and local cached artifacts.
-- Session records expire automatically based on `SESSION_TTL_SECONDS` (default 7 days).
+SESSION_SECRET=replace_with_a_long_random_secret
+SESSION_TTL_SECONDS=86400
+
+# Local dev: use file-backed storage (no database required)
+VECTOR_STORE_BACKEND=local
+# Omit DATABASE_URL for local — sessions/conversations use file-backed stores when unset
+
+# Frontend talks to backend on port 8000 (or leave unset for same-origin relative URLs)
+VITE_API_BASE_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:5173
+BACKEND_URL=http://localhost:8000
+```
+
+3. **Run**
+   - Backend: `cd backend && uvicorn app.main:app --reload`
+   - Frontend: `cd frontend && npm run dev`
 
 ## Testing
-Frontend:
-- `cd frontend && npm test`
 
-Backend:
-- `python3 -m venv .venv`
-- `./.venv/bin/pip install -r backend/requirements.txt`
-- `cd backend && ../.venv/bin/pytest`
+**Frontend:** `cd frontend && npm test`
 
-Backend lint, format, and type checks (from `backend/`):
+**Frontend lint:** `cd frontend && npm run lint`
+
+**Backend:** (with venv activated) `cd backend && pytest`
+
+**Backend lint, format, types** (from `backend/`):
+
 - Lint: `ruff check .`
 - Format: `black --check .`
 - Types: `mypy app`
 
 ## Database
 
-Replit Postgres with pgvector is fully implemented and the schema is applied (`backend/migrations/001_init_schema.sql`).
+On the **deployed site**, Replit Postgres with pgvector is used. Schema is in `backend/migrations/001_init_schema.sql`. Tables: `indexed_files`, `chunks` (vector(1536) + HNSW), `active_folders`, `sessions`, `conversations`.
 
-### Tables
-- `indexed_files` — one row per indexed Drive file per user
-- `chunks` — one row per text chunk with a `vector(1536)` embedding column and HNSW index
-- `active_folders` — current active folder per user
-- `sessions` — server-side session records (replaces file-based session store)
-- `conversations` — per-user/folder conversation state
-
-### Switching backends
-| Env var | Value | Effect |
-|---|---|---|
-| `VECTOR_STORE_BACKEND` | `pgvector` | Use Postgres for vector/file storage |
-| `VECTOR_STORE_BACKEND` | `local` | Use local JSON files (development only) |
-
-Sessions and conversations automatically use Postgres whenever `DATABASE_URL` resolves to a real connection string.
-
-`DATABASE_URL` is auto-resolved from Replit's `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` env vars — no manual configuration required on Replit.
+To **run locally** without a database, set `VECTOR_STORE_BACKEND=local`. Indexed data, sessions, and conversations are then stored in local file storage (no Postgres required). For production or when `DATABASE_URL` is set (e.g. from Replit’s `PG*` env vars), the app uses Postgres for sessions and conversations; set `VECTOR_STORE_BACKEND=pgvector` to store vectors and chunks in Postgres as well.
