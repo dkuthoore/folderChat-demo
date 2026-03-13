@@ -8,6 +8,7 @@ data/
 .git/
 replit.md
 .replit
+attached_assets/
 
 # Deployment scripts
 build.sh
