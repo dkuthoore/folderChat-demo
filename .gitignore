@@ -9,6 +9,10 @@ data/
 replit.md
 .replit
 
+# Deployment scripts
+build.sh
+run.sh
+
 # Environment
 .env.local
 .env.*.local
