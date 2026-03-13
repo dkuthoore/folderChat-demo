@@ -3,6 +3,11 @@ submission.md
 data/
 .env
 
+# Replit local/infrastructure
+.agents/
+.git/
+replit.md
+
 # Environment
 .env.local
 .env.*.local
