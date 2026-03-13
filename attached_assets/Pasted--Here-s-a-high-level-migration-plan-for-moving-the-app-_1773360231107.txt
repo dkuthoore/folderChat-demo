@@ -1,0 +1,82 @@
+
+Here’s a **high-level migration plan** for moving the app to Postgres + pgvector.
+
+---
+
+# High-level plan: migrate to Postgres + pgvector
+
+## Scope
+
+- **In scope:** Replace the current **vector/document storage** (files, chunks, folder indexes, active folder) with Postgres + pgvector. The app already has a `StorageBackend` abstraction and a stub `PgVectorStorageBackend`; the work is to add a DB schema and implement that backend.
+- **Optional later:** Move **sessions** (`ServerSessionStore`) and **conversations** (`ConversationStore`) from file-based storage to Postgres in a follow-up (same DB, different tables).
+
+---
+
+## 1. Database setup
+
+- **Enable pgvector** in the Replit Postgres instance (extension `vector`).
+- **Create tables** that mirror what the local backend stores:
+  - **Indexed files** – one row per indexed Drive file (owner, file_id, name, mime_type, web_view_link, source_type, modified_time, folder_ids, folder_path, last_synced_at). Optionally store `folder_ids` as JSONB or a separate junction table.
+  - **Chunks** – one row per chunk: metadata (chunk_id, owner_google_id, file_id, file_name, mime_type, source_type, drive_url, folder_ids, chunk_index, text) plus a **vector** column (pgvector type) for the embedding. Ensure there is an index suitable for similarity search (e.g. HNSW or IVFFlat on the vector column).
+  - **Folder index** – either derived from “indexed files” (query by folder_id) or a small table that maps folder_id → list of file_ids for fast “list files in folder.”
+  - **Active folder** – one row (or key-value) per owner: owner_google_id, folder_id, folder_name, folder_url.
+- **Migrations:** Prefer a small migration script or SQL file that creates tables and indexes, so the Replit agent can run it once when Postgres is first configured.
+
+---
+
+## 2. Implement `PgVectorStorageBackend`
+
+Implement every method of `StorageBackend` in `backend/app/services/storage/pgvector_store.py` by translating the current **local** behavior into SQL and pgvector calls. Use the existing **models** (`IndexedFileRecord`, `ChunkRecord`, `DriveFileMetadata`, `ActiveFolderRecord`, etc.) as the contract; do not change their fields.
+
+- **Connection:** Use `DATABASE_URL` from config (and optionally `PGVECTOR_TABLE_NAME` if you use a single chunks table). Use a connection pool (e.g. `asyncpg` or `psycopg2`) and ensure the backend is created from config in `get_storage_backend()` when `VECTOR_STORE_BACKEND=pgvector`.
+- **Key methods to implement:**
+  - **Files:** `get_file`, `upsert_file` → read/insert/update the indexed-files table; `associate_file_with_folder` → update folder_ids and any folder-index table.
+  - **Chunks:** `replace_file_chunks` → delete existing chunks for that file, insert new rows (metadata + embedding vector). `delete_file_chunks` → delete by owner + file_id. `get_file_chunks` → select by owner + file_id, order by chunk_index.
+  - **Vector search:** `query_chunks` → filter by owner_google_id and folder_id (and optionally file_name), use pgvector similarity (e.g. `<=>` or `ORDER BY embedding <=> query_embedding LIMIT top_k`), apply `min_similarity` in SQL or in Python. Return `list[ChunkRecord]` with metadata and embedding.
+  - **Folder listing:** `get_folder_files` → from indexed files (and folder index if used) return list of `DriveFileMetadata` for the given folder_id.
+  - **Active folder:** `get_active_folder`, `set_active_folder`, `clear_active_folder` → read/upsert/delete the active-folder row per owner.
+  - **User data wipe:** `clear_user_data` → delete all rows for that owner from chunks, indexed files, folder index, and active folder.
+
+Implement so that **no callers** (ingestion, retrieval, chat, auth, user_data APIs) need to change: they keep using `get_storage_backend(settings)` and the same `StorageBackend` interface.
+
+---
+
+## 3. Config and dependency injection
+
+- **Env:** Ensure Replit (and `.env.example`) have `VECTOR_STORE_BACKEND=pgvector` and `DATABASE_URL` set when using Postgres. Keep `PGVECTOR_TABLE_NAME` if used.
+- **Backend selection:** In `get_storage_backend()` (in `backend/app/services/ingestion.py`), when `vector_store_backend == "pgvector"`, instantiate `PgVectorStorageBackend` with `settings.database_url` (and table name). Require `DATABASE_URL` when pgvector is selected; fail fast or raise a clear error if it’s missing.
+- **No env renames:** Keep existing env var names; only set them correctly on Replit (and document in README).
+
+---
+
+## 4. Testing and validation
+
+- **Unit tests:** Add tests for `PgVectorStorageBackend` (e.g. against a real Postgres + pgvector DB in CI, or a container). Cover at least: upsert file, replace_file_chunks, query_chunks (with a small embedding), get_folder_files, active folder, clear_user_data.
+- **Integration:** Run the existing ingestion and chat flows against the pgvector backend (e.g. on Replit with Replit Postgres) and confirm: ingest folder → list files → ask questions → citations and answers match expectations.
+- **Backward compatibility:** Keep `LocalStorageBackend` working so local dev can still use `VECTOR_STORE_BACKEND=local` without a database.
+
+---
+
+## 5. Data migration (optional)
+
+- If there is **existing local data** that must be preserved (e.g. in Replit’s ephemeral filesystem before switching): add a one-off script that reads from `LocalStorageBackend` (files + chunks + active folder) and writes to `PgVectorStorageBackend`. Run once, then switch env to pgvector.
+- If Replit starts fresh with no data, skip this step.
+
+---
+
+## 6. Order of work (for the Replit agent)
+
+1. Create Postgres DB (Replit Postgres), get `DATABASE_URL`, enable pgvector.
+2. Add schema migration: create tables and vector index.
+3. Implement `PgVectorStorageBackend` method by method (files → chunks → query_chunks → folder/active folder → clear_user_data).
+4. Wire config so `VECTOR_STORE_BACKEND=pgvector` + `DATABASE_URL` use the new backend.
+5. Add tests and manual smoke test on Replit.
+6. (Optional) Data migration script; then set `VECTOR_STORE_BACKEND=pgvector` and remove or keep local as fallback.
+
+---
+
+## Summary
+
+- **Change only:** Implement the existing `PgVectorStorageBackend` against a new Postgres schema with pgvector, and point the app at it via existing env vars.
+- **Do not change:** `StorageBackend` interface, Pydantic models, or API/ingestion/chat flow; keep local backend for dev.
+- **Result:** Same app flow, with document and vector data stored in Replit Postgres + pgvector instead of local JSON files.
