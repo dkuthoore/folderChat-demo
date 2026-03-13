@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from app.models.conversation import FolderConversationRecord
+from app.models.documents import DriveFileMetadata, ParsedDocument
 from fastapi.testclient import TestClient
 
-from app.models.documents import DriveFileMetadata, ParsedDocument
-from app.models.conversation import FolderConversationRecord
 from tests.helpers import FakeOpenAI
 
 
-def fake_drive_file(file_id: str, modified_time: str = "2026-03-11T10:00:00Z") -> DriveFileMetadata:
+def fake_drive_file(
+    file_id: str, modified_time: str = "2026-03-11T10:00:00Z"
+) -> DriveFileMetadata:
     return DriveFileMetadata(
         file_id=file_id,
         name=f"{file_id}.txt",
@@ -40,7 +42,9 @@ def patch_openai(monkeypatch) -> None:
     FakeOpenAI.reset()
     monkeypatch.setattr(ingestion_module, "OpenAI", lambda api_key: FakeOpenAI(api_key))
     monkeypatch.setattr(retrieval_module, "OpenAI", lambda api_key: FakeOpenAI(api_key))
-    monkeypatch.setattr(chat_agent_module, "OpenAI", lambda api_key: FakeOpenAI(api_key))
+    monkeypatch.setattr(
+        chat_agent_module, "OpenAI", lambda api_key: FakeOpenAI(api_key)
+    )
 
 
 def test_ingest_endpoint_returns_sync_summary(
@@ -113,7 +117,10 @@ def test_session_returns_folder_files_from_storage_after_ingest(
     payload = session_response.json()
     assert payload["current_folder_id"] == "folder-abc"
     assert payload["current_folder_name"] == "Session Folder"
-    assert payload["current_folder_url"] == "https://drive.google.com/drive/folders/folder-abc"
+    assert (
+        payload["current_folder_url"]
+        == "https://drive.google.com/drive/folders/folder-abc"
+    )
     assert payload["files"][0]["file_id"] == "file-session"
 
 
@@ -150,7 +157,7 @@ def test_job_stream_emits_completion_event(
     stream_response = authenticated_client.get(f"/api/jobs/{job_id}/stream")
     assert stream_response.status_code == 200
     assert "event: complete" in stream_response.text
-    assert "\"folder_name\":\"Streaming Folder\"" in stream_response.text
+    assert '"folder_name":"Streaming Folder"' in stream_response.text
 
 
 def test_chat_endpoint_returns_answer_and_citations(
@@ -213,7 +220,9 @@ def test_chat_endpoint_maps_direct_answer_urls_back_to_citations(
     monkeypatch.setattr(
         ingest_module.GoogleDriveService,
         "download_and_parse",
-        lambda self, folder_id, file: fake_document(file, "The roadmap mentions stablecoins."),
+        lambda self, folder_id, file: fake_document(
+            file, "The roadmap mentions stablecoins."
+        ),
     )
     patch_openai(monkeypatch)
     FakeOpenAI.tool_output_answer_text = (
@@ -234,7 +243,10 @@ def test_chat_endpoint_maps_direct_answer_urls_back_to_citations(
 
     assert chat_response.status_code == 200
     payload = chat_response.json()
-    assert payload["answer"] == "The answer is in [file-url.txt](https://drive.google.com/file/d/file-url/view)."
+    assert (
+        payload["answer"]
+        == "The answer is in [file-url.txt](https://drive.google.com/file/d/file-url/view)."
+    )
     assert payload["citations"][0]["file_id"] == "file-url"
     assert payload["citations"][0]["source_id"] == "source_1"
 
@@ -320,7 +332,10 @@ def test_chat_second_turn_reuses_conversation_without_mutually_exclusive_state(
         json={"message": "What files are in the folder?"},
     )
     assert second_response.status_code == 200
-    assert second_response.json()["answer"] == "Grounded answer from cached folder content."
+    assert (
+        second_response.json()["answer"]
+        == "Grounded answer from cached folder content."
+    )
 
 
 def test_chat_recovers_from_stale_openai_conversation(
@@ -372,8 +387,12 @@ def test_chat_recovers_from_stale_openai_conversation(
     )
 
     assert chat_response.status_code == 200
-    assert chat_response.json()["answer"] == "Grounded answer from cached folder content."
-    stored_conversation = conversation_store.get_folder_conversation("google-user-123", "folder-abc")
+    assert (
+        chat_response.json()["answer"] == "Grounded answer from cached folder content."
+    )
+    stored_conversation = conversation_store.get_folder_conversation(
+        "google-user-123", "folder-abc"
+    )
     assert stored_conversation is not None
     assert stored_conversation.conversation_id != "conv-stale"
 

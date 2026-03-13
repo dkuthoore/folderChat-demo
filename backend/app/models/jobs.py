@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
-
 from app.models.documents import SyncSummary
+from pydantic import BaseModel, Field
 
 JobStatus = Literal["pending", "in_progress", "completed", "failed"]
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class IngestionJobRecord(BaseModel):
@@ -27,4 +26,3 @@ class IngestionJobRecord(BaseModel):
     sync_summary: SyncSummary | None = None
     updated_at: str = Field(default_factory=utc_now_iso)
     version: int = 0
-

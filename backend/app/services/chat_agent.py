@@ -6,8 +6,6 @@ import re
 from collections.abc import Iterator
 from typing import Any
 
-from openai import OpenAI
-
 from app.core.config import Settings
 from app.models.conversation import FolderConversationRecord
 from app.schemas.chat import (
@@ -23,6 +21,7 @@ from app.schemas.chat import (
 )
 from app.services.conversation_store import ConversationStore
 from app.services.retrieval_service import RetrievalService
+from openai import OpenAI
 
 DRIVE_URL_PATTERN = re.compile(r"https?://[^\s)\]]+")
 SOURCE_ID_PATTERN = re.compile(r"\[\s*(source_\d+)\s*\]|\b(source_\d+)\b")
@@ -61,7 +60,9 @@ class ChatAgentService:
             selected_files=selected_files,
         ):
             if isinstance(event, MessageCompletedEvent):
-                final_response = ChatResponse(answer=event.answer, citations=event.citations)
+                final_response = ChatResponse(
+                    answer=event.answer, citations=event.citations
+                )
             if isinstance(event, ChatFailedEvent):
                 raise RuntimeError(event.error_message)
 
@@ -89,9 +90,11 @@ class ChatAgentService:
             conversation = self._get_or_create_conversation(owner_google_id, folder_id)
             source_registry: dict[str, Citation] = {}
             next_source_number = 1
-            pending_input: str | list[dict[str, Any]] = self._compose_initial_user_input(
-                message=message,
-                selected_files=selected_files,
+            pending_input: str | list[dict[str, Any]] = (
+                self._compose_initial_user_input(
+                    message=message,
+                    selected_files=selected_files,
+                )
             )
             tool_parent_response_id: str | None = None
 
@@ -114,7 +117,9 @@ class ChatAgentService:
                         # tool outputs). Using conversation_id here would make the API see
                         # the conversation thread ending in an unresolved tool call and
                         # return "No tool output found".
-                        stream_kwargs["previous_response_id"] = conversation.last_response_id
+                        stream_kwargs["previous_response_id"] = (
+                            conversation.last_response_id
+                        )
                     else:
                         stream_kwargs["conversation"] = conversation.conversation_id
 
@@ -129,7 +134,10 @@ class ChatAgentService:
 
                     with self.openai.responses.stream(**stream_kwargs) as stream:
                         for event in stream:
-                            if getattr(event, "type", None) == "response.output_text.delta":
+                            if (
+                                getattr(event, "type", None)
+                                == "response.output_text.delta"
+                            ):
                                 delta = getattr(event, "delta", "")
                                 if delta:
                                     yield AssistantDeltaEvent(delta=delta)
@@ -262,7 +270,9 @@ class ChatAgentService:
         owner_google_id: str,
         folder_id: str,
     ) -> FolderConversationRecord:
-        record = self.conversation_store.get_folder_conversation(owner_google_id, folder_id)
+        record = self.conversation_store.get_folder_conversation(
+            owner_google_id, folder_id
+        )
         if record is not None:
             return record
 
@@ -279,7 +289,9 @@ class ChatAgentService:
         )
         return self.conversation_store.upsert_folder_conversation(record)
 
-    def _instructions(self, folder_name: str, selected_files: list[SelectedFile] | None = None) -> str:
+    def _instructions(
+        self, folder_name: str, selected_files: list[SelectedFile] | None = None
+    ) -> str:
         selected_files_instructions = self._selected_files_instructions(selected_files)
         return (
             "You are a grounded research assistant for a Google Drive folder. "
@@ -398,7 +410,9 @@ class ChatAgentService:
             "If you call read_file for one of these selected files, use the exact file_id shown above."
         )
 
-    def _selected_files_instructions(self, selected_files: list[SelectedFile] | None) -> str:
+    def _selected_files_instructions(
+        self, selected_files: list[SelectedFile] | None
+    ) -> str:
         if not selected_files:
             return ""
         selected_lines = "; ".join(
@@ -431,7 +445,11 @@ class ChatAgentService:
                 folder_id=folder_id,
                 query=str(arguments.get("query", "")).strip(),
                 top_k=int(arguments.get("top_k", 5) or 5),
-                file_name=str(arguments["file_name"]).strip() if arguments.get("file_name") else None,
+                file_name=(
+                    str(arguments["file_name"]).strip()
+                    if arguments.get("file_name")
+                    else None
+                ),
                 source_offset=source_offset,
             )
             return result.as_tool_payload(), result.citations
@@ -451,7 +469,11 @@ class ChatAgentService:
             result = self.retrieval_service.read_file(
                 owner_google_id=owner_google_id,
                 folder_id=folder_id,
-                file_name=str(arguments["file_name"]).strip() if arguments.get("file_name") else None,
+                file_name=(
+                    str(arguments["file_name"]).strip()
+                    if arguments.get("file_name")
+                    else None
+                ),
                 file_id=file_id,
                 source_offset=source_offset,
             )
@@ -535,7 +557,9 @@ class ChatAgentService:
             seen_urls.add(drive_url)
         return citations
 
-    def _summarize_input_for_log(self, input_payload: str | list[dict[str, Any]]) -> str:
+    def _summarize_input_for_log(
+        self, input_payload: str | list[dict[str, Any]]
+    ) -> str:
         if isinstance(input_payload, str):
             return self._truncate(input_payload)
 
@@ -544,7 +568,9 @@ class ChatAgentService:
             summarized_items.append(
                 {
                     "type": str(item.get("type")),
-                    "call_id": str(item.get("call_id")) if item.get("call_id") else None,
+                    "call_id": (
+                        str(item.get("call_id")) if item.get("call_id") else None
+                    ),
                     "output": self._truncate(str(item.get("output", ""))),
                 }
             )

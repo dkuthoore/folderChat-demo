@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
 import csv
 import io
-
-from llama_index.core import Document
-from llama_index.core.node_parser import SentenceSplitter
-from openai import OpenAI
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from app.core.config import Settings, get_settings
 from app.models.documents import (
@@ -22,6 +18,9 @@ from app.models.documents import (
 from app.services.storage.base import StorageBackend
 from app.services.storage.local_store import LocalStorageBackend
 from app.services.storage.pgvector_store import PgVectorStorageBackend
+from llama_index.core import Document
+from llama_index.core.node_parser import SentenceSplitter
+from openai import OpenAI
 
 
 @dataclass
@@ -37,7 +36,9 @@ def get_storage_backend(settings: Settings | None = None) -> StorageBackend:
     settings = settings or get_settings()
     if settings.vector_store_backend == "pgvector":
         if not settings.database_url:
-            raise ValueError("DATABASE_URL must be configured when VECTOR_STORE_BACKEND=pgvector")
+            raise ValueError(
+                "DATABASE_URL must be configured when VECTOR_STORE_BACKEND=pgvector"
+            )
         return PgVectorStorageBackend(
             database_url=settings.database_url,
             table_name=settings.pgvector_table_name,
@@ -90,7 +91,10 @@ class IngestionService:
             f"Fetching files from Drive and planning Smart Sync for {len(files)} file(s).",
         )
         stages = [
-            {"label": "Fetching files", "detail": f"Loaded {len(files)} supported files from Drive."},
+            {
+                "label": "Fetching files",
+                "detail": f"Loaded {len(files)} supported files from Drive.",
+            },
         ]
 
         sync_decisions: list[SyncDecision] = []
@@ -108,7 +112,9 @@ class IngestionService:
                 continue
 
             if existing_file.modified_time == file.modified_time:
-                self.storage_backend.associate_file_with_folder(owner_google_id, file.file_id, folder_id)
+                self.storage_backend.associate_file_with_folder(
+                    owner_google_id, file.file_id, folder_id
+                )
                 sync_decisions.append(
                     SyncDecision(
                         file=existing_file.to_drive_metadata(),
@@ -191,9 +197,16 @@ class IngestionService:
                 f"Chunking content for {document.name} ({index}/{total_documents}).",
             )
             try:
-                existing_file = self.storage_backend.get_file(owner_google_id, document.file_id)
+                existing_file = self.storage_backend.get_file(
+                    owner_google_id, document.file_id
+                )
                 folder_ids = sorted(
-                    set([folder_id, *(existing_file.folder_ids if existing_file else [])])
+                    set(
+                        [
+                            folder_id,
+                            *(existing_file.folder_ids if existing_file else []),
+                        ]
+                    )
                 )
                 indexed_file = IndexedFileRecord.from_drive_file(
                     owner_google_id=owner_google_id,
@@ -202,7 +215,9 @@ class IngestionService:
                 )
 
                 if existing_file:
-                    self.storage_backend.delete_file_chunks(owner_google_id, document.file_id)
+                    self.storage_backend.delete_file_chunks(
+                        owner_google_id, document.file_id
+                    )
 
                 chunks = self._build_chunks(owner_google_id, indexed_file, document)
                 self._emit_progress(
@@ -212,14 +227,19 @@ class IngestionService:
                 )
                 self._store_document_text(owner_google_id, document)
                 self.storage_backend.upsert_file(indexed_file)
-                self.storage_backend.replace_file_chunks(owner_google_id, document.file_id, chunks)
+                self.storage_backend.replace_file_chunks(
+                    owner_google_id, document.file_id, chunks
+                )
                 stored_chunk_count += len(chunks)
             except Exception:
                 failed_chunking.append(document.name)
 
         if stored_chunk_count:
             stages.append(
-                {"label": "Chunking content", "detail": f"Prepared {stored_chunk_count} chunks for retrieval."}
+                {
+                    "label": "Chunking content",
+                    "detail": f"Prepared {stored_chunk_count} chunks for retrieval.",
+                }
             )
             stages.append(
                 {
@@ -297,7 +317,9 @@ class IngestionService:
 
         embeddings = self._embed_texts(chunk_texts)
         chunk_records: list[ChunkRecord] = []
-        for index, (chunk_text, embedding) in enumerate(zip(chunk_texts, embeddings, strict=False)):
+        for index, (chunk_text, embedding) in enumerate(
+            zip(chunk_texts, embeddings, strict=False)
+        ):
             metadata = ChunkMetadata(
                 chunk_id=f"{document.file_id}-chunk-{index}",
                 owner_google_id=owner_google_id,
@@ -338,7 +360,11 @@ class IngestionService:
 
         for row_text in data_rows:
             row_length = len(row_text) + 1
-            if current_rows and len(current_rows) > 1 and current_length + row_length > 800:
+            if (
+                current_rows
+                and len(current_rows) > 1
+                and current_length + row_length > 800
+            ):
                 chunks.append("\n".join(current_rows))
                 current_rows = [header, row_text]
                 current_length = len(header) + row_length
@@ -368,13 +394,19 @@ class IngestionService:
         nodes = self.splitter.get_nodes_from_documents([Document(text=text)])
         return [node.text for node in nodes]
 
-    def _store_document_text(self, owner_google_id: str, document: ParsedDocument) -> None:
+    def _store_document_text(
+        self, owner_google_id: str, document: ParsedDocument
+    ) -> None:
         text_dir = self.settings.storage_dir_path / owner_google_id / "texts"
         text_dir.mkdir(parents=True, exist_ok=True)
-        (text_dir / f"{document.file_id}.txt").write_text(document.text, encoding="utf-8")
+        (text_dir / f"{document.file_id}.txt").write_text(
+            document.text, encoding="utf-8"
+        )
 
 
-def document_to_drive_metadata(document: ParsedDocument, folder_ids: list[str]) -> DriveFileMetadata:
+def document_to_drive_metadata(
+    document: ParsedDocument, folder_ids: list[str]
+) -> DriveFileMetadata:
     return DriveFileMetadata(
         file_id=document.file_id,
         name=document.name,

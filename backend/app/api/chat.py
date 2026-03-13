@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import StreamingResponse
-
 from app.core.config import Settings, get_settings
 from app.core.session import get_session_user
 from app.schemas.chat import (
@@ -14,6 +11,8 @@ from app.services.chat_agent import ChatAgentService
 from app.services.conversation_store import get_conversation_store
 from app.services.ingestion import get_storage_backend
 from app.services.retrieval_service import RetrievalService
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/api", tags=["chat"])
 

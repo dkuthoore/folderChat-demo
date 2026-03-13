@@ -14,3 +14,8 @@ pytest==9.0.2
 psycopg2-binary==2.9.10
 pgvector==0.3.6
 numpy==2.2.4
+
+# Linting, formatting, type checking
+ruff>=0.8.0
+black>=24.0.0
+mypy>=1.13.0

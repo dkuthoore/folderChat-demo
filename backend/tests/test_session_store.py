@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from app.models.session import GoogleCredentialsPayload, SessionUser
@@ -47,7 +47,7 @@ def test_get_session_expires_stale_records(tmp_path: Path) -> None:
 
     stale_record = store.get_session(session.session_id)
     assert stale_record is not None
-    stale_record.updated_at = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat()
+    stale_record.updated_at = (datetime.now(UTC) - timedelta(seconds=60)).isoformat()
     store._write_session(stale_record)
 
     assert store.get_session(session.session_id) is None

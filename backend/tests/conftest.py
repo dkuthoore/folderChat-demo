@@ -79,10 +79,14 @@ class FakeAsyncClient:
 
 
 @pytest.fixture
-def authenticated_client(app_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def authenticated_client(
+    app_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> TestClient:
     import app.api.auth as auth_module
 
-    monkeypatch.setattr(auth_module.httpx, "AsyncClient", lambda timeout=30: FakeAsyncClient())
+    monkeypatch.setattr(
+        auth_module.httpx, "AsyncClient", lambda timeout=30: FakeAsyncClient()
+    )
 
     login_response = app_client.get("/auth/google", follow_redirects=False)
     state = parse_qs(urlparse(login_response.headers["location"]).query)["state"][0]

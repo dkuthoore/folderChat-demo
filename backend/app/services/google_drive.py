@@ -4,12 +4,11 @@ import io
 import re
 from pathlib import Path
 
+from app.models.documents import DriveFileMetadata, ParsedDocument, SupportedDriveType
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from pypdf import PdfReader
-
-from app.models.documents import DriveFileMetadata, ParsedDocument, SupportedDriveType
 
 FOLDER_ID_PATTERN = re.compile(r"/folders/([a-zA-Z0-9_-]+)")
 
@@ -25,13 +24,17 @@ class GoogleDriveService:
         self.credentials = credentials
         self.uploads_dir = uploads_dir
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
-        self.drive = build("drive", "v3", credentials=credentials, cache_discovery=False)
+        self.drive = build(
+            "drive", "v3", credentials=credentials, cache_discovery=False
+        )
 
     @staticmethod
     def parse_folder_id(folder_url: str) -> str:
         match = FOLDER_ID_PATTERN.search(folder_url)
         if not match:
-            raise ValueError("Could not extract a Google Drive folder ID from the provided URL.")
+            raise ValueError(
+                "Could not extract a Google Drive folder ID from the provided URL."
+            )
         return match.group(1)
 
     def list_supported_files(self, folder_id: str) -> list[DriveFileMetadata]:
@@ -114,7 +117,9 @@ class GoogleDriveService:
         )
         return response.get("name", folder_id)
 
-    def download_and_parse(self, folder_id: str, file: DriveFileMetadata) -> ParsedDocument:
+    def download_and_parse(
+        self, folder_id: str, file: DriveFileMetadata
+    ) -> ParsedDocument:
         folder_dir = self.uploads_dir / folder_id
         folder_dir.mkdir(parents=True, exist_ok=True)
 

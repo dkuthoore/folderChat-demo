@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-
 from app.models.session import utc_now_iso
+from pydantic import BaseModel, Field
 
 
 class FolderConversationRecord(BaseModel):

@@ -82,4 +82,3 @@ class LocalJobStore:
             encoding="utf-8",
         )
         temp_path.replace(path)
-

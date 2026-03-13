@@ -130,4 +130,6 @@ class FakeOpenAI:
         cls.poison_conversation_ids = set()
         cls.poison_previous_response_ids = set()
         cls.poisoned_once = set()
-        cls.tool_output_answer_text = "Grounded answer from cached folder content. [source_1]"
+        cls.tool_output_answer_text = (
+            "Grounded answer from cached folder content. [source_1]"
+        )

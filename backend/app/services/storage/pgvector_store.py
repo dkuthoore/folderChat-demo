@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-import json
 from contextlib import closing
 
 import psycopg2
 import psycopg2.extras
-from pgvector.psycopg2 import register_vector
-
-from app.models.documents import ActiveFolderRecord, ChunkRecord, ChunkMetadata, DriveFileMetadata, IndexedFileRecord
+from app.models.documents import (
+    ActiveFolderRecord,
+    ChunkMetadata,
+    ChunkRecord,
+    DriveFileMetadata,
+    IndexedFileRecord,
+)
 from app.services.storage.base import StorageBackend
+from pgvector.psycopg2 import register_vector
 
 
 def _get_conn(database_url: str):
@@ -74,7 +78,9 @@ class PgVectorStorageBackend(StorageBackend):
             conn.commit()
         return file_record
 
-    def associate_file_with_folder(self, owner_google_id: str, file_id: str, folder_id: str) -> None:
+    def associate_file_with_folder(
+        self, owner_google_id: str, file_id: str, folder_id: str
+    ) -> None:
         with closing(_get_conn(self.database_url)) as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -110,6 +116,7 @@ class PgVectorStorageBackend(StorageBackend):
         chunks: list[ChunkRecord],
     ) -> None:
         import numpy as np
+
         with closing(_get_conn(self.database_url)) as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -179,6 +186,7 @@ class PgVectorStorageBackend(StorageBackend):
         min_similarity: float = 0.0,
     ) -> list[ChunkRecord]:
         import numpy as np
+
         vec = np.array(query_embedding)
         with closing(_get_conn(self.database_url)) as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -196,9 +204,16 @@ class PgVectorStorageBackend(StorageBackend):
                         ORDER BY embedding <=> %s::vector
                         LIMIT %s
                         """,
-                        (vec, owner_google_id, folder_id,
-                         f"%{file_name.strip().lower()}%",
-                         vec, min_similarity, vec, top_k),
+                        (
+                            vec,
+                            owner_google_id,
+                            folder_id,
+                            f"%{file_name.strip().lower()}%",
+                            vec,
+                            min_similarity,
+                            vec,
+                            top_k,
+                        ),
                     )
                 else:
                     cur.execute(
@@ -213,12 +228,22 @@ class PgVectorStorageBackend(StorageBackend):
                         ORDER BY embedding <=> %s::vector
                         LIMIT %s
                         """,
-                        (vec, owner_google_id, folder_id, vec, min_similarity, vec, top_k),
+                        (
+                            vec,
+                            owner_google_id,
+                            folder_id,
+                            vec,
+                            min_similarity,
+                            vec,
+                            top_k,
+                        ),
                     )
                 rows = cur.fetchall()
         return [_row_to_chunk(row) for row in rows]
 
-    def get_folder_files(self, owner_google_id: str, folder_id: str) -> list[DriveFileMetadata]:
+    def get_folder_files(
+        self, owner_google_id: str, folder_id: str
+    ) -> list[DriveFileMetadata]:
         with closing(_get_conn(self.database_url)) as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(
@@ -299,9 +324,17 @@ class PgVectorStorageBackend(StorageBackend):
     def clear_user_data(self, owner_google_id: str) -> None:
         with closing(_get_conn(self.database_url)) as conn:
             with conn.cursor() as cur:
-                cur.execute("DELETE FROM chunks WHERE owner_google_id = %s", (owner_google_id,))
-                cur.execute("DELETE FROM indexed_files WHERE owner_google_id = %s", (owner_google_id,))
-                cur.execute("DELETE FROM active_folders WHERE owner_google_id = %s", (owner_google_id,))
+                cur.execute(
+                    "DELETE FROM chunks WHERE owner_google_id = %s", (owner_google_id,)
+                )
+                cur.execute(
+                    "DELETE FROM indexed_files WHERE owner_google_id = %s",
+                    (owner_google_id,),
+                )
+                cur.execute(
+                    "DELETE FROM active_folders WHERE owner_google_id = %s",
+                    (owner_google_id,),
+                )
             conn.commit()
 
 

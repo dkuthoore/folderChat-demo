@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from fastapi import HTTPException, Request, status
-from google.oauth2.credentials import Credentials
-
 from app.models.session import ServerSessionRecord
 from app.services.session_store import get_session_store
+from fastapi import HTTPException, Request, status
+from google.oauth2.credentials import Credentials
 
 SESSION_COOKIE_KEY = "server_session_id"
 
@@ -33,7 +32,9 @@ def get_session_user(request: Request) -> dict:
 
 
 def get_google_credentials(request: Request) -> Credentials:
-    credentials_payload = get_server_session(request).credentials.model_dump(mode="json")
+    credentials_payload = get_server_session(request).credentials.model_dump(
+        mode="json"
+    )
 
     return Credentials(
         token=credentials_payload["token"],

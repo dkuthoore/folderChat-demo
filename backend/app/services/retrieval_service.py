@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
-
-from openai import OpenAI
 
 from app.core.config import Settings
 from app.models.documents import ChunkRecord, DriveFileMetadata
 from app.schemas.chat import Citation
 from app.services.storage.base import StorageBackend
+from openai import OpenAI
 
 WHITESPACE_PATTERN = re.compile(r"\s+")
 
@@ -37,7 +36,7 @@ class SearchFolderResult:
                     "chunk_index": citation.chunk_index,
                 }
                 for citation in self.citations
-            ]
+            ],
         }
 
 
@@ -117,7 +116,9 @@ class RetrievalService:
             min_similarity=self.settings.semantic_search_min_similarity,
         )
         refined_chunks = self._prefer_literal_query_mentions(retrieved_chunks, query)
-        used_literal_refinement = bool(refined_chunks) and len(refined_chunks) != len(retrieved_chunks)
+        used_literal_refinement = bool(refined_chunks) and len(refined_chunks) != len(
+            retrieved_chunks
+        )
         citations = [
             Citation(
                 source_id=f"source_{source_offset + index}",
@@ -188,7 +189,9 @@ class RetrievalService:
             file_id=file.file_id,
             file_name=file.name,
             drive_url=file.web_view_link,
-            chunk_excerpt=self._build_excerpt(visible_text, query="", prefer_query_window=False),
+            chunk_excerpt=self._build_excerpt(
+                visible_text, query="", prefer_query_window=False
+            ),
             chunk_index=None,
         )
         return ReadFileResult(
@@ -234,20 +237,26 @@ class RetrievalService:
                 if file.file_id == file_id:
                     return file
             if not file_name or file_id.startswith("source_") is False:
-                raise ValueError(f"Could not find indexed file '{file_id}' in the active folder.")
+                raise ValueError(
+                    f"Could not find indexed file '{file_id}' in the active folder."
+                )
 
         normalized_name = self._normalize_for_match(file_name or "")
         if not normalized_name:
             raise ValueError("read_file requires either file_id or file_name.")
 
         exact_matches = [
-            file for file in files if self._normalize_for_match(file.name) == normalized_name
+            file
+            for file in files
+            if self._normalize_for_match(file.name) == normalized_name
         ]
         if exact_matches:
             return exact_matches[0]
 
         partial_matches = [
-            file for file in files if normalized_name in self._normalize_for_match(file.name)
+            file
+            for file in files
+            if normalized_name in self._normalize_for_match(file.name)
         ]
         if len(partial_matches) == 1:
             return partial_matches[0]
@@ -255,7 +264,9 @@ class RetrievalService:
             raise ValueError(
                 "Multiple indexed files matched that file_name. Use a more specific file name."
             )
-        raise ValueError(f"Could not find indexed file '{file_name}' in the active folder.")
+        raise ValueError(
+            f"Could not find indexed file '{file_name}' in the active folder."
+        )
 
     def _load_full_text(self, owner_google_id: str, file_id: str) -> str:
         persisted_path = self._document_text_path(owner_google_id, file_id)
@@ -266,7 +277,12 @@ class RetrievalService:
         )
 
     def _document_text_path(self, owner_google_id: str, file_id: str) -> Path:
-        return self.settings.storage_dir_path / owner_google_id / "texts" / f"{file_id}.txt"
+        return (
+            self.settings.storage_dir_path
+            / owner_google_id
+            / "texts"
+            / f"{file_id}.txt"
+        )
 
     def _reconstruct_text_from_chunks(self, chunks: list[ChunkRecord]) -> str:
         if not chunks:
@@ -278,7 +294,9 @@ class RetrievalService:
             merged += next_text[overlap:]
         return merged
 
-    def _suffix_prefix_overlap(self, left: str, right: str, min_overlap: int = 40) -> int:
+    def _suffix_prefix_overlap(
+        self, left: str, right: str, min_overlap: int = 40
+    ) -> int:
         max_overlap = min(len(left), len(right))
         for size in range(max_overlap, min_overlap - 1, -1):
             if left.endswith(right[:size]):
@@ -304,7 +322,9 @@ class RetrievalService:
         if match is None:
             return text[:max_length]
 
-        raw_match = re.search(re.escape(query.strip().strip("\"'")), text, flags=re.IGNORECASE)
+        raw_match = re.search(
+            re.escape(query.strip().strip("\"'")), text, flags=re.IGNORECASE
+        )
         if raw_match is None:
             return text[:max_length]
 

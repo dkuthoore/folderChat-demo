@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse, StreamingResponse
-from google.oauth2.credentials import Credentials
-
 from app.core.config import Settings, get_settings
-from app.core.session import get_google_credentials, get_server_session, get_session_user
+from app.core.session import (
+    get_google_credentials,
+    get_server_session,
+    get_session_user,
+)
 from app.models.documents import ActiveFolderRecord, SyncSummary
 from app.schemas.ingest import (
     IngestAcceptedResponse,
@@ -16,8 +16,11 @@ from app.schemas.ingest import (
     IngestRequest,
 )
 from app.services.google_drive import GoogleDriveService
-from app.services.job_store import LocalJobStore
 from app.services.ingestion import IngestionService, get_storage_backend
+from app.services.job_store import LocalJobStore
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse, StreamingResponse
+from google.oauth2.credentials import Credentials
 
 router = APIRouter(prefix="/api", tags=["ingest"])
 
@@ -96,7 +99,9 @@ def _process_drive_folder_job(
             owner_google_id=owner_google_id,
             folder_id=folder_id,
             files=files,
-            download_document=lambda file: drive_service.download_and_parse(folder_id, file),
+            download_document=lambda file: drive_service.download_and_parse(
+                folder_id, file
+            ),
             progress_callback=lambda progress, message: job_store.update_job(
                 owner_google_id,
                 job_id,
@@ -133,7 +138,9 @@ async def ingest_folder(
 ):
     user = get_session_user(request)
     credentials = get_google_credentials(request)
-    credentials_payload = get_server_session(request).credentials.model_dump(mode="json")
+    credentials_payload = get_server_session(request).credentials.model_dump(
+        mode="json"
+    )
 
     try:
         folder_id = GoogleDriveService.parse_folder_id(str(payload.folder_url))
@@ -143,7 +150,9 @@ async def ingest_folder(
         )
         folder_name = drive_service.get_folder_name(folder_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     storage_backend = get_storage_backend(settings)
     storage_backend.set_active_folder(
@@ -208,14 +217,16 @@ async def stream_ingestion_job(
     job_store = _job_store(settings)
     job = job_store.get_job(user["google_id"], job_id)
     if job is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion job not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion job not found."
+        )
 
     async def event_generator():
         last_seen_version = -1
         while True:
             current_job = job_store.get_job(user["google_id"], job_id)
             if current_job is None:
-                yield "event: failed\ndata: {\"detail\":\"Ingestion job was not found.\"}\n\n"
+                yield 'event: failed\ndata: {"detail":"Ingestion job was not found."}\n\n'
                 break
 
             if current_job.version != last_seen_version:

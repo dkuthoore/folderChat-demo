@@ -1,6 +1,5 @@
-from pydantic import BaseModel, Field
-
 from app.models.documents import DriveFileMetadata
+from pydantic import BaseModel, Field
 
 
 class AuthenticatedUser(BaseModel):

@@ -21,7 +21,9 @@ class ConversationStore:
         path = self._conversation_path(owner_google_id, folder_id)
         if not path.exists():
             return None
-        return FolderConversationRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        return FolderConversationRecord.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
 
     def upsert_folder_conversation(
         self,
@@ -56,6 +58,7 @@ class PgConversationStore:
 
     def _get_conn(self):
         import psycopg2
+
         return psycopg2.connect(self.database_url)
 
     def get_folder_conversation(
@@ -64,6 +67,7 @@ class PgConversationStore:
         folder_id: str,
     ) -> FolderConversationRecord | None:
         import psycopg2.extras
+
         with closing(self._get_conn()) as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(
@@ -135,7 +139,9 @@ class PgConversationStore:
             conn.commit()
 
 
-def get_conversation_store(settings: Settings | None = None) -> ConversationStore | PgConversationStore:
+def get_conversation_store(
+    settings: Settings | None = None,
+) -> ConversationStore | PgConversationStore:
     resolved_settings = settings or get_settings()
     if resolved_settings.database_url:
         return PgConversationStore(database_url=resolved_settings.database_url)

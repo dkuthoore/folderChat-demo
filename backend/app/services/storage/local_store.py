@@ -53,16 +53,22 @@ class LocalStorageBackend(StorageBackend):
         chunks: list[ChunkRecord],
     ) -> None:
         all_chunks = self._read_chunks(owner_google_id)
-        filtered_chunks = [chunk for chunk in all_chunks if chunk.metadata.file_id != file_id]
+        filtered_chunks = [
+            chunk for chunk in all_chunks if chunk.metadata.file_id != file_id
+        ]
         filtered_chunks.extend(chunks)
         self._write_chunks(owner_google_id, filtered_chunks)
 
     def delete_file_chunks(self, owner_google_id: str, file_id: str) -> None:
         chunks = self._read_chunks(owner_google_id)
-        remaining_chunks = [chunk for chunk in chunks if chunk.metadata.file_id != file_id]
+        remaining_chunks = [
+            chunk for chunk in chunks if chunk.metadata.file_id != file_id
+        ]
         self._write_chunks(owner_google_id, remaining_chunks)
 
-    def associate_file_with_folder(self, owner_google_id: str, file_id: str, folder_id: str) -> None:
+    def associate_file_with_folder(
+        self, owner_google_id: str, file_id: str, folder_id: str
+    ) -> None:
         files = self._read_files(owner_google_id)
         if file_id not in files:
             return
@@ -79,7 +85,9 @@ class LocalStorageBackend(StorageBackend):
         chunks = self._read_chunks(owner_google_id)
         for chunk in chunks:
             if chunk.metadata.file_id == file_id:
-                chunk.metadata.folder_ids = sorted(set([*chunk.metadata.folder_ids, folder_id]))
+                chunk.metadata.folder_ids = sorted(
+                    set([*chunk.metadata.folder_ids, folder_id])
+                )
         self._write_chunks(owner_google_id, chunks)
 
     def query_chunks(
@@ -109,24 +117,30 @@ class LocalStorageBackend(StorageBackend):
         ]
         ranked = sorted(scored_chunks, key=lambda item: item[1], reverse=True)
         filtered = [
-            chunk
-            for chunk, similarity in ranked
-            if similarity >= min_similarity
+            chunk for chunk, similarity in ranked if similarity >= min_similarity
         ]
         return filtered[:top_k]
 
-    def get_folder_files(self, owner_google_id: str, folder_id: str) -> list[DriveFileMetadata]:
-        folder_index_path = self._user_dir(owner_google_id) / "folders" / f"{folder_id}.json"
+    def get_folder_files(
+        self, owner_google_id: str, folder_id: str
+    ) -> list[DriveFileMetadata]:
+        folder_index_path = (
+            self._user_dir(owner_google_id) / "folders" / f"{folder_id}.json"
+        )
         if not folder_index_path.exists():
             return []
-        summary = FolderIndexSummary.model_validate_json(folder_index_path.read_text(encoding="utf-8"))
+        summary = FolderIndexSummary.model_validate_json(
+            folder_index_path.read_text(encoding="utf-8")
+        )
 
         files = self._read_files(owner_google_id)
         folder_files: list[DriveFileMetadata] = []
         for file_id in summary.file_ids:
             payload = files.get(file_id)
             if payload:
-                folder_files.append(IndexedFileRecord.model_validate(payload).to_drive_metadata())
+                folder_files.append(
+                    IndexedFileRecord.model_validate(payload).to_drive_metadata()
+                )
         return folder_files
 
     def get_file_chunks(self, owner_google_id: str, file_id: str) -> list[ChunkRecord]:
@@ -141,7 +155,9 @@ class LocalStorageBackend(StorageBackend):
         active_folder_path = self._user_dir(owner_google_id) / "active_folder.json"
         if not active_folder_path.exists():
             return None
-        return ActiveFolderRecord.model_validate_json(active_folder_path.read_text(encoding="utf-8"))
+        return ActiveFolderRecord.model_validate_json(
+            active_folder_path.read_text(encoding="utf-8")
+        )
 
     def set_active_folder(self, active_folder: ActiveFolderRecord) -> None:
         user_dir = self._user_dir(active_folder.owner_google_id)
@@ -193,7 +209,9 @@ class LocalStorageBackend(StorageBackend):
             encoding="utf-8",
         )
 
-    def _write_folder_indexes(self, owner_google_id: str, files: dict[str, dict]) -> None:
+    def _write_folder_indexes(
+        self, owner_google_id: str, files: dict[str, dict]
+    ) -> None:
         folders_dir = self._user_dir(owner_google_id) / "folders"
         folders_dir.mkdir(parents=True, exist_ok=True)
 

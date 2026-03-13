@@ -1,6 +1,5 @@
-from pydantic import BaseModel, HttpUrl
-
 from app.models.documents import SyncSummary
+from pydantic import BaseModel, HttpUrl
 
 
 class IngestRequest(BaseModel):

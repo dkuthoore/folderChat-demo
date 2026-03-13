@@ -4,15 +4,14 @@ import secrets
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
-
 from app.core.config import Settings, get_settings
 from app.core.session import SESSION_COOKIE_KEY
 from app.models.session import GoogleCredentialsPayload, SessionUser
 from app.schemas.auth import AuthenticatedUser, SessionResponse
 from app.services.ingestion import get_storage_backend
 from app.services.session_store import get_session_store
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 
 router = APIRouter(tags=["auth"])
 
@@ -108,7 +107,9 @@ async def google_callback(
 
 
 @router.get("/auth/logout")
-async def logout(request: Request, settings: Settings = Depends(get_settings)) -> RedirectResponse:
+async def logout(
+    request: Request, settings: Settings = Depends(get_settings)
+) -> RedirectResponse:
     session_id = request.session.get(SESSION_COOKIE_KEY)
     if session_id:
         get_session_store(settings).delete_session(session_id)

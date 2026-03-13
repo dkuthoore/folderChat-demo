@@ -3,7 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.core.config import Settings
-from app.models.documents import ChunkMetadata, ChunkRecord, DriveFileMetadata, ParsedDocument
+from app.models.documents import (
+    ChunkMetadata,
+    ChunkRecord,
+    DriveFileMetadata,
+    ParsedDocument,
+)
 from app.services.ingestion import IngestionService
 from app.services.retrieval_service import RetrievalService
 from app.services.storage.local_store import LocalStorageBackend
@@ -99,10 +104,13 @@ def test_unchanged_file_skips_processing_and_reuses_cache(tmp_path: Path) -> Non
         "user-1",
         "folder-123",
         [file],
-        lambda input_file: processed.append(input_file.file_id) or build_document(input_file, "Should not run"),
+        lambda input_file: processed.append(input_file.file_id)
+        or build_document(input_file, "Should not run"),
     )
 
-    queried_chunks = storage.query_chunks("user-1", "folder-123", [1.0, 0.0, 0.0], top_k=5)
+    queried_chunks = storage.query_chunks(
+        "user-1", "folder-123", [1.0, 0.0, 0.0], top_k=5
+    )
     assert processed == []
     assert result.sync_summary.skipped_files == 1
     assert queried_chunks[0].metadata.text == "Original cached content"
@@ -127,9 +135,20 @@ def test_updated_file_invalidates_and_reingests(tmp_path: Path) -> None:
         lambda input_file: build_document(input_file, "New chunk text"),
     )
 
-    queried_chunks = storage.query_chunks("user-1", "folder-123", [1.0, 0.0, 0.0], top_k=5)
+    queried_chunks = storage.query_chunks(
+        "user-1", "folder-123", [1.0, 0.0, 0.0], top_k=5
+    )
     assert result.sync_summary.updated_files == 1
-    assert len([chunk for chunk in queried_chunks if chunk.metadata.file_id == "file-updated"]) == 1
+    assert (
+        len(
+            [
+                chunk
+                for chunk in queried_chunks
+                if chunk.metadata.file_id == "file-updated"
+            ]
+        )
+        == 1
+    )
     assert queried_chunks[0].metadata.text == "New chunk text"
 
 
@@ -292,7 +311,9 @@ def test_search_folder_prefers_literal_mentions_within_semantic_candidates(
     assert "widget" in result.citations[0].chunk_excerpt
 
 
-def test_read_file_returns_persisted_extracted_text_for_presentations(tmp_path: Path) -> None:
+def test_read_file_returns_persisted_extracted_text_for_presentations(
+    tmp_path: Path,
+) -> None:
     service, storage = build_service(tmp_path)
     file = build_file(
         "file-slides",
@@ -323,7 +344,9 @@ def test_read_file_returns_persisted_extracted_text_for_presentations(tmp_path: 
     assert result.truncated is False
 
 
-def test_read_file_falls_back_to_file_name_when_model_passes_source_id(tmp_path: Path) -> None:
+def test_read_file_falls_back_to_file_name_when_model_passes_source_id(
+    tmp_path: Path,
+) -> None:
     service, storage = build_service(tmp_path)
     file = build_file(
         "file-applications",
@@ -370,4 +393,6 @@ def test_spreadsheet_chunking_keeps_rows_together(tmp_path: Path) -> None:
 
     chunk_texts = service._chunk_texts_for_document(spreadsheet)
 
-    assert any("not yet applying because timing is off" in chunk for chunk in chunk_texts)
+    assert any(
+        "not yet applying because timing is off" in chunk for chunk in chunk_texts
+    )

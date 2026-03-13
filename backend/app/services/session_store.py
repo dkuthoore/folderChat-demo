@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from contextlib import closing
-from datetime import datetime, timezone
 import json
 import uuid
+from contextlib import closing
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.core.config import Settings, get_settings
@@ -39,7 +39,9 @@ class ServerSessionStore:
         path = self._session_path(session_id)
         if not path.exists():
             return None
-        record = ServerSessionRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        record = ServerSessionRecord.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
         if self._is_expired(record):
             self.delete_session(session_id)
             return None
@@ -76,8 +78,8 @@ class ServerSessionStore:
             return False
         updated_at = datetime.fromisoformat(record.updated_at)
         if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-        elapsed_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
+            updated_at = updated_at.replace(tzinfo=UTC)
+        elapsed_seconds = (datetime.now(UTC) - updated_at).total_seconds()
         return elapsed_seconds > self.session_ttl_seconds
 
 
@@ -89,6 +91,7 @@ class PgSessionStore:
     def _get_conn(self):
         import psycopg2
         import psycopg2.extras
+
         return psycopg2.connect(self.database_url)
 
     def create_session(
@@ -107,6 +110,7 @@ class PgSessionStore:
 
     def get_session(self, session_id: str) -> ServerSessionRecord | None:
         import psycopg2.extras
+
         with closing(self._get_conn()) as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(
@@ -120,7 +124,9 @@ class PgSessionStore:
         record = ServerSessionRecord(
             session_id=row["session_id"],
             user=SessionUser.model_validate(row["user_json"]),
-            credentials=GoogleCredentialsPayload.model_validate(row["credentials_json"]),
+            credentials=GoogleCredentialsPayload.model_validate(
+                row["credentials_json"]
+            ),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
@@ -170,12 +176,14 @@ class PgSessionStore:
             return False
         updated_at = datetime.fromisoformat(record.updated_at)
         if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-        elapsed_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
+            updated_at = updated_at.replace(tzinfo=UTC)
+        elapsed_seconds = (datetime.now(UTC) - updated_at).total_seconds()
         return elapsed_seconds > self.session_ttl_seconds
 
 
-def get_session_store(settings: Settings | None = None) -> ServerSessionStore | PgSessionStore:
+def get_session_store(
+    settings: Settings | None = None,
+) -> ServerSessionStore | PgSessionStore:
     resolved_settings = settings or get_settings()
     if resolved_settings.database_url:
         return PgSessionStore(

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from app.models.documents import ActiveFolderRecord, ChunkRecord, DriveFileMetadata, IndexedFileRecord
+from app.models.documents import (
+    ActiveFolderRecord,
+    ChunkRecord,
+    DriveFileMetadata,
+    IndexedFileRecord,
+)
 
 
 class StorageBackend(ABC):
@@ -28,7 +33,9 @@ class StorageBackend(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def associate_file_with_folder(self, owner_google_id: str, file_id: str, folder_id: str) -> None:
+    def associate_file_with_folder(
+        self, owner_google_id: str, file_id: str, folder_id: str
+    ) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -44,7 +51,9 @@ class StorageBackend(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_folder_files(self, owner_google_id: str, folder_id: str) -> list[DriveFileMetadata]:
+    def get_folder_files(
+        self, owner_google_id: str, folder_id: str
+    ) -> list[DriveFileMetadata]:
         raise NotImplementedError
 
     @abstractmethod

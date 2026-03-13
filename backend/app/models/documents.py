@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
-
 
 SupportedDriveType = Literal["document", "spreadsheet", "presentation", "pdf"]
 SyncStatus = Literal["new", "skipped", "updated"]
@@ -69,7 +68,7 @@ class IndexedFileRecord(BaseModel):
         owner_google_id: str,
         file: DriveFileMetadata,
         folder_ids: list[str],
-    ) -> "IndexedFileRecord":
+    ) -> IndexedFileRecord:
         return cls(
             owner_google_id=owner_google_id,
             file_id=file.file_id,
@@ -80,7 +79,7 @@ class IndexedFileRecord(BaseModel):
             modified_time=file.modified_time,
             folder_ids=sorted(set(folder_ids)),
             folder_path=file.folder_path or "",
-            last_synced_at=datetime.now(timezone.utc).isoformat(),
+            last_synced_at=datetime.now(UTC).isoformat(),
         )
 
     def to_drive_metadata(self) -> DriveFileMetadata:
