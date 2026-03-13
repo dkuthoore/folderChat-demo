@@ -7,8 +7,7 @@ This repo contains a webapp enabling users to explore a Google Drive folder via 
 - Backend: FastAPI + Python
 - Auth: Google OAuth with `drive.readonly`
 - RAG: LlamaIndex for chunking, OpenAI for embeddings and chat
-- Local dev storage: file-backed vector store abstraction with file-level Smart Sync
-- Future production storage: Replit Postgres + `pgvector`
+- Storage: Replit Postgres + `pgvector` (production); file-backed local store available for dev via `VECTOR_STORE_BACKEND=local`
 
 ## Repo Layout
 - `frontend/`: React app
@@ -78,10 +77,23 @@ Backend:
 - `./.venv/bin/pip install -r backend/requirements.txt`
 - `cd backend && ../.venv/bin/pytest`
 
-## Database Handoff
-The current implementation uses a local storage backend selected by `VECTOR_STORE_BACKEND=local`.
+## Database
 
-When Replit Postgres is ready:
-1. Set `VECTOR_STORE_BACKEND=pgvector`
-2. Replace `DATABASE_URL` with your Replit Postgres connection string
-3. Implement the `PgVectorStorageBackend` methods in `backend/app/services/storage/pgvector_store.py`
+Replit Postgres with pgvector is fully implemented and the schema is applied (`backend/migrations/001_init_schema.sql`).
+
+### Tables
+- `indexed_files` — one row per indexed Drive file per user
+- `chunks` — one row per text chunk with a `vector(1536)` embedding column and HNSW index
+- `active_folders` — current active folder per user
+- `sessions` — server-side session records (replaces file-based session store)
+- `conversations` — per-user/folder conversation state
+
+### Switching backends
+| Env var | Value | Effect |
+|---|---|---|
+| `VECTOR_STORE_BACKEND` | `pgvector` | Use Postgres for vector/file storage |
+| `VECTOR_STORE_BACKEND` | `local` | Use local JSON files (development only) |
+
+Sessions and conversations automatically use Postgres whenever `DATABASE_URL` resolves to a real connection string.
+
+`DATABASE_URL` is auto-resolved from Replit's `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` env vars — no manual configuration required on Replit.

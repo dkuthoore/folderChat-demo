@@ -8,7 +8,7 @@ A full-stack web app that lets users explore a Google Drive folder through an AI
 - **Backend**: FastAPI + Python 3.12 (port 8000)
 - **Auth**: Google OAuth with `drive.readonly` scope
 - **RAG**: LlamaIndex for chunking/indexing, OpenAI for embeddings and chat
-- **Storage**: File-backed local vector store (configurable to pgvector)
+- **Storage**: Replit Postgres + pgvector (production) — file-backed local store available for dev via `VECTOR_STORE_BACKEND=local`
 
 ## Project Layout
 - `frontend/` — React SPA (Vite dev server on port 5000, proxies `/api` and `/auth` to backend)
@@ -24,14 +24,25 @@ A full-stack web app that lets users explore a Google Drive folder through an AI
 ## Vite Proxy
 The frontend Vite dev server proxies `/api/*` and `/auth/*` to `http://localhost:8000`, so the browser always talks to port 5000 and never reaches localhost:8000 directly.
 
+## Database (Replit Postgres + pgvector)
+Schema applied: `backend/migrations/001_init_schema.sql`
+- `indexed_files` — indexed Drive files per user
+- `chunks` — text chunks with `vector(1536)` embeddings and HNSW index
+- `active_folders` — current active folder per user
+- `sessions` — server-side session records
+- `conversations` — per-user/folder conversation state
+
+`DATABASE_URL` is auto-resolved from Replit's `PG*` env vars. Sessions and conversations always use Postgres when connected. Vector/file storage uses Postgres when `VECTOR_STORE_BACKEND=pgvector`.
+
 ## Environment Variables (Replit Secrets)
 All configured via Replit Secrets:
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` — Google OAuth
 - `OPENAI_API_KEY`, `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL` — OpenAI
 - `FRONTEND_URL`, `BACKEND_URL` — Service URLs
 - `SESSION_SECRET`, `SESSION_TTL_SECONDS` — Session management
-- `VECTOR_STORE_BACKEND` — `local` or `pgvector`
-- `LOCAL_STORAGE_DIR`, `LOCAL_UPLOADS_DIR` — Data paths
+- `VECTOR_STORE_BACKEND` — `pgvector` (production) or `local` (dev)
+- `LOCAL_STORAGE_DIR`, `LOCAL_UPLOADS_DIR` — Data paths (local dev only)
+- `DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` — Set by Replit Postgres
 
 ## Important Notes for Google OAuth
 For the app to work with Google OAuth on Replit, these secrets need the Replit domain:

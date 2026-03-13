@@ -1,7 +1,8 @@
 from functools import lru_cache
+import os
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,6 +44,32 @@ class Settings(BaseSettings):
         alias="SEMANTIC_SEARCH_MIN_SIMILARITY",
     )
     read_file_max_chars: int = Field(default=12000, alias="READ_FILE_MAX_CHARS")
+
+    @model_validator(mode="after")
+    def resolve_database_url(self) -> "Settings":
+        """
+        If DATABASE_URL looks like a placeholder (contains literal 'username' or 'hostname'),
+        try to construct a real connection string from the individual PG* environment variables
+        that Replit sets when a Postgres database is provisioned.
+        """
+        pg_host = os.environ.get("PGHOST", "")
+        pg_port = os.environ.get("PGPORT", "5432")
+        pg_user = os.environ.get("PGUSER", "")
+        pg_password = os.environ.get("PGPASSWORD", "")
+        pg_database = os.environ.get("PGDATABASE", "")
+
+        is_placeholder = (
+            not self.database_url
+            or "username" in (self.database_url or "")
+            or "@host:" in (self.database_url or "")
+        )
+
+        if is_placeholder and pg_host and pg_user and pg_database:
+            self.database_url = (
+                f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_database}"
+            )
+
+        return self
 
     @property
     def storage_dir_path(self) -> Path:
