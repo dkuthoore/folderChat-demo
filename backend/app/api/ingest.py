@@ -5,6 +5,7 @@ import logging
 from typing import cast
 
 from app.core.config import Settings, get_settings
+from app.core.rate_limit import check_ingest_rate_limit
 from app.core.session import (
     get_google_credentials,
     get_server_session,
@@ -185,6 +186,7 @@ async def ingest_folder(
     settings: Settings = Depends(get_settings),
 ):
     user = get_session_user(request)
+    check_ingest_rate_limit(user["google_id"])
     credentials = get_google_credentials(request)
     credentials_payload = get_server_session(request).credentials.model_dump(
         mode="json"
