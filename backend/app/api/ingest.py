@@ -161,7 +161,7 @@ def _process_drive_folder_job(
             current_step_message="Folder ingestion failed.",
             error_message=_drive_error_message(exc),
         )
-    except Exception as exc:
+    except Exception:
         logger.exception(
             "ingest.failed owner=%s job_id=%s folder_id=%s",
             owner_google_id,

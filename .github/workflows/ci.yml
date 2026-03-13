@@ -51,6 +51,7 @@ jobs:
           VECTOR_STORE_BACKEND: local
           LOCAL_STORAGE_DIR: /tmp/ci-storage
           LOCAL_UPLOADS_DIR: /tmp/ci-uploads
+          DISABLE_RATE_LIMIT: "1"
         run: pytest -v
 
   frontend:

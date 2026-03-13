@@ -23,6 +23,7 @@ def _set_test_env(tmp_path) -> None:
     os.environ["VECTOR_STORE_BACKEND"] = "local"
     os.environ["LOCAL_STORAGE_DIR"] = str(tmp_path / "storage")
     os.environ["LOCAL_UPLOADS_DIR"] = str(tmp_path / "uploads")
+    os.environ["DISABLE_RATE_LIMIT"] = "1"
 
 
 @pytest.fixture

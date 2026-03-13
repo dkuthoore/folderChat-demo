@@ -1046,8 +1046,9 @@ span {
   border: 1px solid #333333;
   border-radius: 12px;
   background: #000000;
-  overflow: hidden;
+  overflow: visible;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
 }
 
 .chat-input-box:focus-within {
@@ -1086,6 +1087,72 @@ span {
   width: fit-content;
   max-width: 220px;
   border-radius: 6px;
+}
+
+.chat-mention-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.chat-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.chat-mention-item:hover,
+.chat-mention-item--highlighted {
+  background: #222222;
+}
+
+.chat-mention-item-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.chat-mention-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-mention-item-path {
+  flex-shrink: 0;
+  font-size: 0.85em;
+  color: #888888;
+}
+
+.chat-mention-item--loading,
+.chat-mention-item--empty {
+  color: #888888;
+  cursor: default;
+}
+
+.chat-mention-item--loading:hover,
+.chat-mention-item--empty:hover {
+  background: transparent;
 }
 
 .file-chip {

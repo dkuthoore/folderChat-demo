@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 from collections import defaultdict
 
 from fastapi import HTTPException, status
+
+_RATE_LIMIT_DISABLED = os.environ.get("DISABLE_RATE_LIMIT", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 MINUTE = 60
 HOUR = 3600
@@ -36,6 +43,8 @@ def check_ingest_rate_limit(user_id: str) -> None:
     Check ingest rate limit for the given user. Raises HTTPException 429 if over limit.
     Counts all requests (valid or invalid) to prevent abuse.
     """
+    if _RATE_LIMIT_DISABLED:
+        return
     now = time.monotonic()
     with _lock:
         timestamps = _store[user_id]
@@ -66,6 +75,8 @@ def check_chat_rate_limit(user_id: str) -> None:
     Check chat rate limit for the given user. Raises HTTPException 429 if over limit.
     Counts both /chat and /chat/stream requests.
     """
+    if _RATE_LIMIT_DISABLED:
+        return
     now = time.monotonic()
     with _lock:
         timestamps = _chat_store[user_id]

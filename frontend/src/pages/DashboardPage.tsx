@@ -357,6 +357,7 @@ export function DashboardPage() {
                   draftMessage={draftMessage}
                   onDraftChange={setDraftMessage}
                   selectedFiles={selectedFiles}
+                  onAddFile={handleFileSelect}
                   onRemoveFile={handleRemoveFile}
                   onClearFiles={() => setSelectedFiles([])}
                   isLoading={isChatLoading}

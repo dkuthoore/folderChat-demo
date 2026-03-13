@@ -173,6 +173,14 @@ export async function streamChatMessage(
   }
 }
 
+export async function fetchChatFileSuggestions(q?: string): Promise<DriveFileMetadata[]> {
+  const params = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''
+  const response = await fetch(`${apiBaseUrl}/api/chat/files${params}`, {
+    credentials: 'include',
+  })
+  return readJson<DriveFileMetadata[]>(response)
+}
+
 export async function resetChatContext(): Promise<ChatResetResponse> {
   const response = await fetch(`${apiBaseUrl}/api/chat/reset`, {
     method: 'POST',

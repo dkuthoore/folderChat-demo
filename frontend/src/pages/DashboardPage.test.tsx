@@ -130,7 +130,7 @@ describe('DashboardPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('✅ Files are already synced!')).toBeInTheDocument()
-      expect(screen.getByPlaceholderText('Ask something about the ingested folder...')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Ask something about the ingested folder... (type @ to add a file)')).toBeInTheDocument()
     })
   })
 
@@ -266,7 +266,7 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />)
 
-    const input = screen.getByPlaceholderText('Ask something about the ingested folder...')
+    const input = screen.getByPlaceholderText('Ask something about the ingested folder... (type @ to add a file)')
     await userEvent.type(input, 'What files mention X?')
     await userEvent.click(screen.getByRole('button', { name: 'Send message' }))
     await userEvent.click(screen.getByRole('button', { name: /expand to see 1 tool call/i }))
@@ -303,7 +303,7 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />)
 
-    const input = screen.getByPlaceholderText('Ask something about the ingested folder...')
+    const input = screen.getByPlaceholderText('Ask something about the ingested folder... (type @ to add a file)')
     await userEvent.type(input, 'Which files mention Amjad?')
     await userEvent.click(screen.getByRole('button', { name: 'Send message' }))
 

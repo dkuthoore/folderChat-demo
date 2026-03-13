@@ -14,6 +14,7 @@ interface ChatInterfaceProps {
   draftMessage: string
   onDraftChange: (value: string) => void
   selectedFiles?: DriveFileMetadata[]
+  onAddFile?: (file: DriveFileMetadata) => void
   onRemoveFile?: (file: DriveFileMetadata) => void
   onClearFiles?: () => void
   isLoading: boolean
@@ -26,6 +27,7 @@ export function ChatInterface({
   draftMessage,
   onDraftChange,
   selectedFiles = [],
+  onAddFile,
   onRemoveFile,
   onClearFiles,
   isLoading,
@@ -48,10 +50,12 @@ export function ChatInterface({
         value={draftMessage}
         onChange={onDraftChange}
         selectedFiles={selectedFiles}
+        onAddFile={onAddFile}
         onRemoveFile={onRemoveFile}
         onClearFiles={onClearFiles}
         disabled={isLoading || !hasIndexedFiles}
         isLoading={isLoading}
+        hasIndexedFiles={hasIndexedFiles}
       />
     </section>
   )
