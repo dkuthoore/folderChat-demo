@@ -280,9 +280,8 @@ span {
 
 .toast {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  bottom: 1.5rem;
+  right: 1.5rem;
   padding: 12px 20px;
   background: #111111;
   border: 1px solid #333333;
