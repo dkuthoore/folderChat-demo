@@ -40,7 +40,7 @@ async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
 
 
-FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
