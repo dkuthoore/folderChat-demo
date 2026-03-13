@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.core.config import Settings, get_settings
+from app.core.rate_limit import check_chat_rate_limit
 from app.core.session import get_session_user
 from app.schemas.chat import (
     ChatRequest,
@@ -33,6 +34,7 @@ async def chat(
     settings: Settings = Depends(get_settings),
 ) -> ChatResponse:
     user = get_session_user(request)
+    check_chat_rate_limit(user["google_id"])
     storage_backend = get_storage_backend(settings)
     active_folder = storage_backend.get_active_folder(user["google_id"])
     if not active_folder:
@@ -58,6 +60,7 @@ async def stream_chat(
     settings: Settings = Depends(get_settings),
 ) -> StreamingResponse:
     user = get_session_user(request)
+    check_chat_rate_limit(user["google_id"])
     storage_backend = get_storage_backend(settings)
     active_folder = storage_backend.get_active_folder(user["google_id"])
     if not active_folder:
