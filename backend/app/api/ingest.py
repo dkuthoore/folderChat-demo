@@ -23,6 +23,7 @@ from app.services.job_store import LocalJobStore
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from google.oauth2.credentials import Credentials
+from pydantic import HttpUrl
 
 router = APIRouter(prefix="/api", tags=["ingest"])
 
@@ -52,7 +53,7 @@ def _serialize_job_event(job: IngestionJobRecord) -> str:
             current_step_message=job.current_step_message,
             folder_id=job.folder_id,
             folder_name=job.folder_name,
-            folder_url=job.folder_url,
+            folder_url=HttpUrl(job.folder_url),
             sync_summary=job.sync_summary,
             error_message=job.error_message,
         ).model_dump_json(),
@@ -210,7 +211,7 @@ async def ingest_folder(
             job_id=job.id,
             folder_id=folder_id,
             folder_name=folder_name,
-            folder_url=str(payload.folder_url),
+            folder_url=payload.folder_url,
         ).model_dump(mode="json"),
     )
 

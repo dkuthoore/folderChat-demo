@@ -339,7 +339,7 @@ class IngestionService:
 
         llama_documents = [Document(text=document.text)]
         nodes = self.splitter.get_nodes_from_documents(llama_documents)
-        return [node.text for node in nodes]
+        return [getattr(node, "text", "") for node in nodes]
 
     def _build_spreadsheet_chunk_texts(self, text: str) -> list[str]:
         rows = list(csv.reader(io.StringIO(text)))
@@ -390,7 +390,7 @@ class IngestionService:
 
     def _split_long_text(self, text: str) -> list[str]:
         nodes = self.splitter.get_nodes_from_documents([Document(text=text)])
-        return [node.text for node in nodes]
+        return [getattr(node, "text", "") for node in nodes]
 
     def _store_document_text(
         self, owner_google_id: str, document: ParsedDocument
