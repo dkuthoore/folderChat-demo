@@ -1,7 +1,9 @@
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -12,9 +14,19 @@ from app.api.ingest import router as ingest_router
 from app.api.user_data import router as user_data_router
 from app.core.config import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
+
+# Check if frontend dist exists at startup
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if not FRONTEND_DIST.exists():
+    logger.warning(
+        f"Frontend dist directory not found at {FRONTEND_DIST}. "
+        "Static files will not be served. Run 'npm run build' in frontend/ directory."
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
@@ -26,8 +38,17 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.session_secret,
     same_site="lax",
-    https_only=False,
+    https_only=True,
 )
+
+
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    """Add cache headers for static assets (hashed filenames)."""
+    response = await call_next(request)
+    if request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
 
 app.include_router(auth_router)
 app.include_router(ingest_router)
@@ -40,7 +61,6 @@ async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
 
 
-FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if FRONTEND_DIST.exists():
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
