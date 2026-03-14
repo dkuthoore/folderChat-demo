@@ -50,6 +50,7 @@ async def add_cache_headers(request: Request, call_next):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
+
 app.include_router(auth_router)
 app.include_router(ingest_router)
 app.include_router(chat_router)
@@ -72,14 +73,14 @@ if FRONTEND_DIST.exists():
         # Resolve to canonical paths to prevent path traversal attacks
         candidate = (FRONTEND_DIST / full_path).resolve()
         dist_resolved = FRONTEND_DIST.resolve()
-        
+
         # Verify candidate is within frontend/dist before serving
         try:
             candidate.relative_to(dist_resolved)
         except ValueError:
             # Path tried to escape dist directory, fall back to index.html
             return FileResponse(str(dist_resolved / "index.html"))
-        
+
         if candidate.is_file():
             return FileResponse(str(candidate))
         # For all other paths (SPA routes), serve index.html
