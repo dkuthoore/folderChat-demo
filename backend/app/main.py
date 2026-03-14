@@ -49,8 +49,18 @@ if FRONTEND_DIST.exists():
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str) -> FileResponse:
         # Serve any real file that exists in the dist directory (favicon, etc.)
-        candidate = FRONTEND_DIST / full_path
+        # Resolve to canonical paths to prevent path traversal attacks
+        candidate = (FRONTEND_DIST / full_path).resolve()
+        dist_resolved = FRONTEND_DIST.resolve()
+        
+        # Verify candidate is within frontend/dist before serving
+        try:
+            candidate.relative_to(dist_resolved)
+        except ValueError:
+            # Path tried to escape dist directory, fall back to index.html
+            return FileResponse(str(dist_resolved / "index.html"))
+        
         if candidate.is_file():
             return FileResponse(str(candidate))
         # For all other paths (SPA routes), serve index.html
-        return FileResponse(str(FRONTEND_DIST / "index.html"))
+        return FileResponse(str(dist_resolved / "index.html"))
