@@ -15,7 +15,7 @@ export function IngestionStatusBar({
   syncSummary,
   folderName,
 }: IngestionStatusBarProps) {
-  if (!isProcessing && !syncSummary) {
+  if (!isProcessing) {
     return null
   }
 

@@ -263,7 +263,6 @@ export function DashboardPage() {
   const handleClearDataConfirm = async () => {
     setShowClearDataConfirm(false)
     setError(null)
-    setSuccessMessage(null)
     setIsDeleting(true)
     try {
       await clearUserData()
@@ -276,7 +275,7 @@ export function DashboardPage() {
       setActiveFolderUrl(null)
       setActiveFolderName(null)
       await refreshSession()
-      setSuccessMessage('Your indexed data was cleared successfully.')
+      setToastMessage('Your indexed data was cleared successfully.')
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Failed to clear your data.')
     } finally {
