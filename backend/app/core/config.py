@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -79,6 +80,10 @@ class Settings(BaseSettings):
     @property
     def uploads_dir_path(self) -> Path:
         return (ROOT_DIR / self.local_uploads_dir).resolve()
+
+    @property
+    def session_https_only(self) -> bool:
+        return urlparse(self.frontend_url).scheme.lower() == "https"
 
 
 @lru_cache
