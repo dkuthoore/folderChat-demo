@@ -296,7 +296,9 @@ class ChatAgentService:
         return (
             "You are a grounded research assistant for a Google Drive folder. "
             f"The active folder is '{folder_name}'. "
-            "Always use the available tools before answering any question about the folder contents, to gather context. "
+            "Always use the available tools before answering any question, to gather context. Don't assume things about the files, read them. "
+            "If the user asks for a summary of the files in the folder, read the file(s) and summarize the content concisely."
+            "If the user asks for an overview of the folder, list the files and read the files, then summarize the content concisely."
             "list_files: use to see all files in the folder and subfolders (names and paths only; no file content). "
             "search_folder: use to semantically search for keywords or content within the folder's files and subfolders' files; returns ranked excerpts. "
             "read_file: use to actually read the full text of specific files; this tool requires file_id for exact matching. "
