@@ -41,6 +41,7 @@ interface SidebarProps {
   onClearData: () => void
   onSignOut: () => void
   isIngesting: boolean
+  isResyncLoading?: boolean
   isDeleting: boolean
   showWorkspace: boolean
 }
@@ -56,9 +57,11 @@ export function Sidebar({
   onClearData,
   onSignOut,
   isIngesting,
+  isResyncLoading = false,
   isDeleting,
   showWorkspace,
 }: SidebarProps) {
+  const isResyncActive = isIngesting || isResyncLoading
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
   const sidebarRef = useRef<HTMLElement>(null)
 
@@ -121,11 +124,11 @@ export function Sidebar({
                   type="button"
                   className="sidebar-action-btn"
                   onClick={onResync}
-                  disabled={isIngesting}
-                  aria-label={isIngesting ? 'Syncing...' : 'Re-sync folder'}
-                  title={isIngesting ? 'Syncing...' : 'Re-sync folder'}
+                  disabled={isResyncActive}
+                  aria-label={isResyncActive ? 'Syncing...' : 'Re-sync folder'}
+                  title={isResyncActive ? 'Syncing...' : 'Re-sync folder'}
                 >
-                  {isIngesting ? (
+                  {isResyncActive ? (
                     <span
                       className="topbar-btn-spinner"
                       style={{ width: 14, height: 14 }}
@@ -261,11 +264,11 @@ export function Sidebar({
                 type="button"
                 className="sidebar-action-btn"
                 onClick={onResync}
-                disabled={isIngesting}
-                aria-label={isIngesting ? 'Syncing...' : 'Re-sync folder'}
-                title={isIngesting ? 'Syncing...' : 'Re-sync folder'}
+                disabled={isResyncActive}
+                aria-label={isResyncActive ? 'Syncing...' : 'Re-sync folder'}
+                title={isResyncActive ? 'Syncing...' : 'Re-sync folder'}
               >
-                {isIngesting ? (
+                {isResyncActive ? (
                   <span
                     className="topbar-btn-spinner"
                     style={{ width: 14, height: 14 }}

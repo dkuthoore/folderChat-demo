@@ -325,6 +325,7 @@ export function DashboardPage() {
             onClearData={() => void handleClearData()}
             onSignOut={signOut}
             isIngesting={isIngesting}
+            isResyncLoading={isStartingIngestion}
             isDeleting={isDeleting}
             showWorkspace={showWorkspace}
           />
