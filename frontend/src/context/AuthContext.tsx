@@ -20,7 +20,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentFolderUrl, setCurrentFolderUrl] = useState<string | null>(null)
 
   const refreshSession = useCallback(async () => {
-    setIsLoading(true)
     try {
       const session = await fetchSession()
       setIsAuthenticated(session.is_authenticated)
