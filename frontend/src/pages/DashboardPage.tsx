@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { ChatInterface } from '../components/ChatInterface'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FolderInputBar } from '../components/FolderInputBar'
 import { IngestionStatusBar } from '../components/IngestionStatusBar'
 import { Sidebar } from '../components/Sidebar'
@@ -34,6 +35,7 @@ export function DashboardPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [showClearDataConfirm, setShowClearDataConfirm] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<DriveFileMetadata[]>([])
   const MAX_SELECTED_FILES = 3
 
@@ -88,6 +90,12 @@ export function DashboardPage() {
     const t = setTimeout(() => setToastMessage(null), 3000)
     return () => clearTimeout(t)
   }, [toastMessage])
+
+  useEffect(() => {
+    if (!successMessage) return
+    const t = setTimeout(() => setSuccessMessage(null), 3000)
+    return () => clearTimeout(t)
+  }, [successMessage])
 
   const handleIngest = async () => {
     const nextFolderUrl = folderUrl.trim()
@@ -248,14 +256,12 @@ export function DashboardPage() {
     }
   }
 
-  const handleClearData = async () => {
-    const shouldDelete = window.confirm(
-      'Clear all indexed files, chunks, and cached data associated with your account?',
-    )
-    if (!shouldDelete) {
-      return
-    }
+  const handleClearDataClick = () => {
+    setShowClearDataConfirm(true)
+  }
 
+  const handleClearDataConfirm = async () => {
+    setShowClearDataConfirm(false)
     setError(null)
     setSuccessMessage(null)
     setIsDeleting(true)
@@ -276,6 +282,10 @@ export function DashboardPage() {
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const handleClearDataCancel = () => {
+    setShowClearDataConfirm(false)
   }
 
   return (
@@ -310,6 +320,17 @@ export function DashboardPage() {
         </div>
       ) : null}
 
+      <ConfirmDialog
+        isOpen={showClearDataConfirm}
+        title="Clear My Data"
+        message="Clear all indexed files, chunks, and cached data associated with your account?"
+        confirmLabel="Clear Data"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={() => void handleClearDataConfirm()}
+        onCancel={handleClearDataCancel}
+      />
+
       {showWorkspace ? (
         <>
           <Sidebar
@@ -320,7 +341,7 @@ export function DashboardPage() {
             user={user}
             onResync={() => void handleIngest()}
             onNewFolder={() => void handleNewFolder()}
-            onClearData={() => void handleClearData()}
+            onClearData={handleClearDataClick}
             onSignOut={signOut}
             isIngesting={isIngesting}
             isResyncLoading={isStartingIngestion}

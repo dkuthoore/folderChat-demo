@@ -176,7 +176,6 @@ describe('DashboardPage', () => {
 
   it('clears user data and shows a success banner', async () => {
     mockedClearUserData.mockResolvedValue({ status: 'deleted' })
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     mockedUseAuth.mockReturnValue({
       isLoading: false,
       isAuthenticated: true,
@@ -193,6 +192,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />)
 
     await userEvent.click(screen.getByRole('button', { name: 'Clear My Data' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Clear Data' }))
 
     await waitFor(() => {
       expect(mockedClearUserData).toHaveBeenCalledTimes(1)
