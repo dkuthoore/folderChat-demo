@@ -312,4 +312,61 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Replit')).toBeInTheDocument()
     })
   })
+
+  it('shows Thinking indicator until first streamed token arrives', async () => {
+    mockedUseAuth.mockReturnValue({
+      isLoading: false,
+      isAuthenticated: true,
+      user: buildSession().user,
+      files: buildIndexedSession().files,
+      currentFolderId: 'folder-abc',
+      currentFolderName: 'Tenex Folder',
+      currentFolderUrl: 'https://drive.google.com/drive/folders/folder-abc',
+      refreshSession: vi.fn().mockResolvedValue(buildIndexedSession()),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+    })
+    mockedUseIngestionJob.mockReturnValue({
+      isProcessing: false,
+      progress: 100,
+      statusMessage: 'Ingestion complete.',
+      error: null,
+      syncSummary: null,
+    })
+
+    let releaseStream = () => {}
+    const streamGate = new Promise<void>((resolve) => {
+      releaseStream = resolve
+    })
+
+    mockedStreamChatMessage.mockImplementation(async (_message, _selectedFiles, onEvent) => {
+      onEvent({
+        type: 'tool_call_started',
+        tool_call_id: 'call-1',
+        tool_name: 'search_folder',
+        summary: 'Searching the folder for "X".',
+        arguments: { query: 'X', top_k: 5, file_name: '' },
+      })
+      await streamGate
+      onEvent({ type: 'assistant_delta', delta: 'First token' })
+      onEvent({ type: 'message_completed', answer: 'First token', citations: [] })
+    })
+
+    render(<DashboardPage />)
+
+    const input = screen.getByPlaceholderText('Ask something about the ingested folder... (type @ to add a file)')
+    await userEvent.type(input, 'What files mention X?')
+    await userEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Thinking')).toBeInTheDocument()
+    })
+
+    releaseStream()
+
+    await waitFor(() => {
+      expect(screen.queryByText('Thinking')).not.toBeInTheDocument()
+      expect(screen.getByText('First token')).toBeInTheDocument()
+    })
+  })
 })

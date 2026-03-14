@@ -30,10 +30,22 @@ export function MessageBubble({ message }: { message: Message }) {
   const [toolStepsExpanded, setToolStepsExpanded] = useState(false)
   const content = message.content
   const selectedFiles = message.selectedFiles ?? []
+  const showThinking =
+    message.role === 'assistant' &&
+    message.status === 'Thinking...' &&
+    !message.hasStartedStreaming &&
+    content.trim().length === 0
 
   return (
     <article className={`message-bubble ${message.role === 'user' ? 'message-user' : 'message-ai'}`}>
-      {message.status ? <p className="message-status">{message.status}</p> : null}
+      {showThinking ? (
+        <p className="message-status message-status--thinking" role="status" aria-live="polite">
+          <span>Thinking</span>
+          <span className="message-status-dots" aria-hidden />
+        </p>
+      ) : message.status ? (
+        <p className="message-status">{message.status}</p>
+      ) : null}
       {message.role === 'user' && selectedFiles.length > 0 ? (
         <div className="message-selected-files">
           {selectedFiles.map((file) => (

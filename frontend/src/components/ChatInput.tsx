@@ -189,30 +189,32 @@ export function ChatInput({
 
   return (
     <div className="chat-input-row">
-      <div className="chat-input-box" ref={mentionDropdownRef}>
-        {selectedFiles.length > 0 ? (
-          <div className="chat-input-file-chips">
-            {selectedFiles.map((file) => (
-              <div key={file.file_id} className="chat-input-file-chip">
-                <FileChip file={file} onRemove={() => onRemoveFile?.(file)} />
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <textarea
-          ref={textareaRef}
-          className="chat-textarea"
-          value={value}
-          onChange={handleTextChange}
-          onKeyDown={handleTextareaKeyDown}
-        placeholder={
-          selectedFiles.length > 0
-            ? 'Type your question...'
-            : 'Ask something about the ingested folder... (type @ to add a file)'
-        }
-        rows={1}
-        disabled={disabled}
-        />
+      <div className="chat-input-box-wrap" ref={mentionDropdownRef}>
+        <div className="chat-input-box">
+          {selectedFiles.length > 0 ? (
+            <div className="chat-input-file-chips">
+              {selectedFiles.map((file) => (
+                <div key={file.file_id} className="chat-input-file-chip">
+                  <FileChip file={file} onRemove={() => onRemoveFile?.(file)} />
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <textarea
+            ref={textareaRef}
+            className="chat-textarea"
+            value={value}
+            onChange={handleTextChange}
+            onKeyDown={handleTextareaKeyDown}
+            placeholder={
+              selectedFiles.length > 0
+                ? 'Type your question...'
+                : 'Ask something about the ingested folder... (type @ to add a file)'
+            }
+            rows={1}
+            disabled={disabled}
+          />
+        </div>
         {showMentionDropdown ? (
           <div className="chat-mention-dropdown" role="listbox">
             {suggestionsLoading ? (

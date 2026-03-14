@@ -136,6 +136,7 @@ export function DashboardPage() {
       content: '',
       citations: [],
       status: 'Thinking...',
+      hasStartedStreaming: false,
       toolSteps: [],
     }
     setMessages((current) => [...current, userMessage, assistantMessage])
@@ -154,12 +155,13 @@ export function DashboardPage() {
                 return {
                   ...currentMessage,
                   content: `${currentMessage.content}${event.delta}`,
-                  status: currentMessage.status === 'Thinking...' ? null : currentMessage.status,
+                  hasStartedStreaming: true,
+                  status: null,
                 }
               case 'tool_call_started':
                 return {
                   ...currentMessage,
-                  status: event.summary,
+                  status: currentMessage.hasStartedStreaming ? event.summary : currentMessage.status,
                   toolSteps: [
                     ...(currentMessage.toolSteps ?? []),
                     {
@@ -172,7 +174,7 @@ export function DashboardPage() {
               case 'tool_call_completed':
                 return {
                   ...currentMessage,
-                  status: event.summary,
+                  status: currentMessage.hasStartedStreaming ? event.summary : currentMessage.status,
                 }
               case 'citations_updated':
                 return currentMessage
@@ -185,6 +187,7 @@ export function DashboardPage() {
                   ...currentMessage,
                   content: keepStreamedContent ? streamedContent : event.answer,
                   citations: event.citations,
+                  hasStartedStreaming: true,
                   status: null,
                   toolSteps: currentMessage.toolSteps ?? [],
                 }

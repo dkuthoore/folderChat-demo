@@ -142,6 +142,7 @@ export interface Message {
   content: string
   citations?: Citation[]
   status?: string | null
+  hasStartedStreaming?: boolean
   toolSteps?: ToolStep[]
   selectedFiles?: DriveFileMetadata[]
 }

@@ -1038,17 +1038,20 @@ span {
   flex-shrink: 0;
 }
 
-.chat-input-box {
+.chat-input-box-wrap {
   flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.chat-input-box {
   display: flex;
   flex-direction: column;
-  min-width: 0;
   border: 1px solid #333333;
   border-radius: 12px;
   background: #000000;
-  overflow: visible;
+  overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  position: relative;
 }
 
 .chat-input-box:focus-within {
@@ -1501,6 +1504,48 @@ span {
 
 .tool-steps-list li {
   margin-bottom: 4px;
+}
+
+.message-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #888888;
+}
+
+.message-status--thinking {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #cccccc;
+}
+
+.message-status-dots {
+  display: inline-flex;
+  width: 16px;
+  justify-content: flex-start;
+}
+
+.message-status-dots::before {
+  content: '...';
+  display: inline-block;
+  width: 16px;
+  overflow: hidden;
+  animation: thinking-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes thinking-dots {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-status-dots::before {
+    animation: none;
+  }
 }
 
 .error-banner,
