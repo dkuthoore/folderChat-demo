@@ -35,7 +35,7 @@ export function useIngestionJob(
 
     const handleEvent = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as IngestionJobEvent
-      setProgress(payload.progress_percentage)
+      setProgress((prev) => Math.max(prev, payload.progress_percentage))
       setStatusMessage(payload.current_step_message)
       setSyncSummary(payload.sync_summary ?? null)
     }

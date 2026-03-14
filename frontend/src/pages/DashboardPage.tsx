@@ -27,6 +27,7 @@ export function DashboardPage() {
   const [draftMessage, setDraftMessage] = useState('')
   const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
+  const [isStartingIngestion, setIsStartingIngestion] = useState(false)
   const [isChatLoading, setIsChatLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +69,7 @@ export function DashboardPage() {
     void handleJobComplete(event)
   })
 
-  const showWorkspace = !!activeFolderUrl && !isIngesting
+  const showWorkspace = !!activeFolderUrl && !isIngesting && !isStartingIngestion
 
   useEffect(() => {
     if (currentFolderUrl) {
@@ -99,6 +100,7 @@ export function DashboardPage() {
     setError(null)
     setSuccessMessage(null)
     setSyncSummary(null)
+    setIsStartingIngestion(true)
     try {
       const result = await ingestFolder(nextFolderUrl)
       if (result.alreadySynced) {
@@ -117,6 +119,8 @@ export function DashboardPage() {
       setSelectedFiles([])
     } catch (ingestError) {
       setError(ingestError instanceof Error ? ingestError.message : 'Folder ingestion failed.')
+    } finally {
+      setIsStartingIngestion(false)
     }
   }
 
@@ -376,16 +380,20 @@ export function DashboardPage() {
             value={folderUrl}
             onChange={setFolderUrl}
             onSubmit={() => void handleIngest()}
-            isLoading={isIngesting}
+            isLoading={isStartingIngestion || isIngesting}
             activeFolderUrl={activeFolderUrl}
           />
-          {isIngesting ? (
+          {(isStartingIngestion || isIngesting) ? (
             <IngestionStatusBar
-              isProcessing={isIngesting}
-              progress={progress}
-              statusMessage={statusMessage}
+              isProcessing={isStartingIngestion || isIngesting}
+              progress={isStartingIngestion && !isIngesting ? 0 : progress}
+              statusMessage={
+                isStartingIngestion && !isIngesting
+                  ? 'Connecting to Google Drive...'
+                  : statusMessage
+              }
               syncSummary={liveSyncSummary ?? syncSummary}
-              folderName={activeFolderName}
+              folderName={isStartingIngestion && !isIngesting ? null : activeFolderName}
             />
           ) : null}
         </section>

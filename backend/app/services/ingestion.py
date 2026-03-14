@@ -191,9 +191,12 @@ class IngestionService:
         failed_chunking: list[str] = []
         total_documents = len(processed_documents)
         for index, document in enumerate(processed_documents, start=1):
+            # Use a single linear scale (50-100%) so progress never decreases when
+            # moving between chunking and embedding phases across documents.
+            chunking_progress = 50 + int(50 * (index - 0.5) / max(total_documents, 1))
             self._emit_progress(
                 progress_callback,
-                50 + int(((index - 1) / max(total_documents, 1)) * 20),
+                chunking_progress,
                 f"Chunking content for {document.name} ({index}/{total_documents}).",
             )
             try:
@@ -218,9 +221,10 @@ class IngestionService:
                     )
 
                 chunks = self._build_chunks(owner_google_id, indexed_file, document)
+                embedding_progress = 50 + int(50 * index / max(total_documents, 1))
                 self._emit_progress(
                     progress_callback,
-                    75 + int((index / max(total_documents, 1)) * 15),
+                    embedding_progress,
                     f"Generating embeddings for {document.name} ({index}/{total_documents}).",
                 )
                 self._store_document_text(owner_google_id, document)
