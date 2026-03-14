@@ -65,9 +65,7 @@ export function DashboardPage() {
     statusMessage,
     error: jobError,
     syncSummary: liveSyncSummary,
-  } = useIngestionJob(jobId, (event) => {
-    void handleJobComplete(event)
-  })
+  } = useIngestionJob(jobId, handleJobComplete)
 
   const showWorkspace = !!activeFolderUrl && !isIngesting
 
