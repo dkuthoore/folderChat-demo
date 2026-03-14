@@ -69,7 +69,7 @@ export function DashboardPage() {
     void handleJobComplete(event)
   })
 
-  const showWorkspace = !!activeFolderUrl && !isIngesting && !isStartingIngestion
+  const showWorkspace = !!activeFolderUrl && !isIngesting
 
   useEffect(() => {
     if (currentFolderUrl) {
